@@ -150,6 +150,9 @@ config/credentials.json
 config/token.json
 config/token.pickle
 
+# Harmonics data (generated locally via scripts/fetch_jma_tide_data.py)
+config/harmonics/*.pkl
+
 # Spyder project settings
 .spyderproject
 .spyproject
