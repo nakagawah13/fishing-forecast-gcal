@@ -17,6 +17,7 @@
 手順:
 1. `config/config.yaml.template` を `config/config.yaml` にコピー
 2. 地点情報とカレンダー ID を設定
+3. `forecast_window_days` を確認（予報更新範囲）
 
 ## 開発環境（uv 前提）
 uv を使った Python 開発を前提とする。

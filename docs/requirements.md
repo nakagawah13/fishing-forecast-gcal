@@ -29,6 +29,7 @@
 settings:
   timezone: "Asia/Tokyo"
   update_interval_hours: 6
+  forecast_window_days: 7
   calendar_id: "your_fishing_calendar_id@group.calendar.google.com"
   trips_calendar_id: "your_trips_calendar_id@group.calendar.google.com"
 
@@ -45,11 +46,13 @@ locations:
 - 天文潮の取得は合法性と継続性を優先し、ライセンス確認後に決定
 - 計算ライブラリ採用時は公式潮見表で差分検証を行う
 - 時合い帯の既定は「満潮前後 2 時間」
+- 予報更新は `forecast_window_days` の範囲のみを対象にする
 
 ## 未決事項
 - Google カレンダーのイベント設計（タイトル/本文/タイムゾーン/更新方針）
 - イベント ID の制約確認と生成方式
 - 公式/準公式データの入手可否と利用規約
+- 潮回り（大潮/中潮/小潮など）を含むデータソースの採用可否
 
 ## 落とし穴・注意点
 - 潮汐データの取得方式により、精度・継続性・料金が大きく変わる
