@@ -1,0 +1,14 @@
+# Copy this file to config/config.yaml and fill your values.
+# Keep config/config.yaml out of git to avoid leaking personal locations.
+
+settings:
+  timezone: "Asia/Tokyo"
+  update_interval_hours: 6
+  calendar_id: "your_fishing_calendar_id@group.calendar.google.com"
+  trips_calendar_id: "your_trips_calendar_id@group.calendar.google.com"
+
+locations:
+  - name: "Home"
+    latitude: 35.0000
+    longitude: 139.0000
+    port_code: "PLACEHOLDER"
