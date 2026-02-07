@@ -18,7 +18,7 @@ class TestFishingCondition:
             wind_direction="北",
             pressure_hpa=1012.0,
             forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-            warning_level="safe"
+            warning_level="safe",
         )
         assert condition.wind_speed_mps == 5.0
         assert condition.wind_direction == "北"
@@ -33,7 +33,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=1012.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-                warning_level="safe"
+                warning_level="safe",
             )
 
     def test_wind_speed_over_50_raises_error(self) -> None:
@@ -44,7 +44,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=1012.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-                warning_level="safe"
+                warning_level="safe",
             )
 
     def test_pressure_below_900_raises_error(self) -> None:
@@ -55,7 +55,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=899.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-                warning_level="safe"
+                warning_level="safe",
             )
 
     def test_pressure_over_1100_raises_error(self) -> None:
@@ -66,7 +66,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=1101.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-                warning_level="safe"
+                warning_level="safe",
             )
 
     def test_forecast_time_without_timezone_raises_error(self) -> None:
@@ -77,7 +77,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=1012.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0),  # No timezone
-                warning_level="safe"
+                warning_level="safe",
             )
 
     def test_invalid_warning_level_raises_error(self) -> None:
@@ -88,7 +88,7 @@ class TestFishingCondition:
                 wind_direction="北",
                 pressure_hpa=1012.0,
                 forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-                warning_level="invalid"  # type: ignore
+                warning_level="invalid",  # type: ignore
             )
 
     def test_fishing_condition_is_immutable(self) -> None:
@@ -98,7 +98,7 @@ class TestFishingCondition:
             wind_direction="北",
             pressure_hpa=1012.0,
             forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
-            warning_level="safe"
+            warning_level="safe",
         )
         with pytest.raises(dataclasses.FrozenInstanceError):
             condition.wind_speed_mps = 10.0  # type: ignore

@@ -28,7 +28,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         assert event.event_id == "test_event_123"
         assert event.title == "潮汐 東京湾 (大潮)"
@@ -43,7 +43,7 @@ class TestCalendarEvent:
                 title="潮汐 東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
-                location_id="tokyo_bay"
+                location_id="tokyo_bay",
             )
 
     def test_whitespace_only_event_id_raises_error(self) -> None:
@@ -54,7 +54,7 @@ class TestCalendarEvent:
                 title="潮汐 東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
-                location_id="tokyo_bay"
+                location_id="tokyo_bay",
             )
 
     def test_empty_title_raises_error(self) -> None:
@@ -65,7 +65,7 @@ class TestCalendarEvent:
                 title="",
                 description="test",
                 date=date(2026, 2, 8),
-                location_id="tokyo_bay"
+                location_id="tokyo_bay",
             )
 
     def test_title_over_50_chars_raises_error(self) -> None:
@@ -77,7 +77,7 @@ class TestCalendarEvent:
                 title=long_title,
                 description="test",
                 date=date(2026, 2, 8),
-                location_id="tokyo_bay"
+                location_id="tokyo_bay",
             )
 
     def test_title_at_50_chars_is_valid(self) -> None:
@@ -88,7 +88,7 @@ class TestCalendarEvent:
             title=title_50,
             description="test",
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         assert len(event.title) == 50
 
@@ -100,7 +100,7 @@ class TestCalendarEvent:
                 title="潮汐 東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
-                location_id=""
+                location_id="",
             )
 
     def test_has_valid_sections_with_all_sections(self) -> None:
@@ -119,7 +119,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         assert event.has_valid_sections() is True
 
@@ -136,7 +136,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         assert event.has_valid_sections() is False
 
@@ -157,7 +157,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         tide_section = event.extract_section("TIDE")
         assert tide_section is not None
@@ -181,7 +181,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         forecast_section = event.extract_section("FORECAST")
         assert forecast_section is not None
@@ -204,7 +204,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         notes_section = event.extract_section("NOTES")
         assert notes_section is not None
@@ -220,7 +220,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         section = event.extract_section("NONEXISTENT")
         assert section is None
@@ -241,7 +241,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
 
         new_forecast = "- 風速: 10m/s\n- 風向: 南"
@@ -270,7 +270,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
 
         with pytest.raises(ValueError, match="Section \\[FORECAST\\] does not exist"):
@@ -283,7 +283,7 @@ class TestCalendarEvent:
             title="潮汐 東京湾 (大潮)",
             description="test",
             date=date(2026, 2, 8),
-            location_id="tokyo_bay"
+            location_id="tokyo_bay",
         )
         with pytest.raises(dataclasses.FrozenInstanceError):
             event.title = "新しいタイトル"  # type: ignore

@@ -36,21 +36,15 @@ class FishingCondition:
         """インスタンス化後のバリデーション"""
         # 風速の範囲チェック
         if not (0 <= self.wind_speed_mps <= 50):
-            raise ValueError(
-                f"wind_speed_mps must be between 0 and 50, got {self.wind_speed_mps}"
-            )
+            raise ValueError(f"wind_speed_mps must be between 0 and 50, got {self.wind_speed_mps}")
 
         # 気圧の範囲チェック
         if not (900 <= self.pressure_hpa <= 1100):
-            raise ValueError(
-                f"pressure_hpa must be between 900 and 1100, got {self.pressure_hpa}"
-            )
+            raise ValueError(f"pressure_hpa must be between 900 and 1100, got {self.pressure_hpa}")
 
         # forecast_timeのtimezone確認
         if self.forecast_time.tzinfo is None:
-            raise ValueError(
-                f"forecast_time must be timezone-aware: {self.forecast_time}"
-            )
+            raise ValueError(f"forecast_time must be timezone-aware: {self.forecast_time}")
 
         # warning_levelの検証（型ヒントで制約されるが念のため）
         if self.warning_level not in ("safe", "caution", "danger"):

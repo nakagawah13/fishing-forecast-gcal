@@ -49,21 +49,15 @@ class TideEvent:
         """インスタンス化後のバリデーション"""
         # timezoneの確認
         if self.time.tzinfo is None:
-            raise ValueError(
-                f"time must be timezone-aware: {self.time}"
-            )
+            raise ValueError(f"time must be timezone-aware: {self.time}")
 
         # 潮位の範囲チェック
         if not (0 <= self.height_cm <= 500):
-            raise ValueError(
-                f"height_cm must be between 0 and 500, got {self.height_cm}"
-            )
+            raise ValueError(f"height_cm must be between 0 and 500, got {self.height_cm}")
 
         # event_typeの検証（型ヒントで制約されるが念のため）
         if self.event_type not in ("high", "low"):
-            raise ValueError(
-                f"event_type must be 'high' or 'low', got {self.event_type}"
-            )
+            raise ValueError(f"event_type must be 'high' or 'low', got {self.event_type}")
 
 
 @dataclass(frozen=True)
@@ -106,9 +100,7 @@ class Tide:
         # prime_timeの整合性チェック（両方nullまたは両方non-null）
         prime_time_set = {self.prime_time_start is not None, self.prime_time_end is not None}
         if len(prime_time_set) > 1:
-            raise ValueError(
-                "prime_time_start and prime_time_end must be both set or both None"
-            )
+            raise ValueError("prime_time_start and prime_time_end must be both set or both None")
 
         # prime_timeが設定されている場合、開始<終了であること
         if self.prime_time_start is not None and self.prime_time_end is not None:

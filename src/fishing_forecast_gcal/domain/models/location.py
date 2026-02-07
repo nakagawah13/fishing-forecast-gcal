@@ -44,12 +44,8 @@ class Location:
 
         # 緯度の範囲チェック
         if not (-90 <= self.latitude <= 90):
-            raise ValueError(
-                f"latitude must be between -90 and 90, got {self.latitude}"
-            )
+            raise ValueError(f"latitude must be between -90 and 90, got {self.latitude}")
 
         # 経度の範囲チェック
         if not (-180 <= self.longitude <= 180):
-            raise ValueError(
-                f"longitude must be between -180 and 180, got {self.longitude}"
-            )
+            raise ValueError(f"longitude must be between -180 and 180, got {self.longitude}")

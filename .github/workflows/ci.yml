@@ -34,7 +34,12 @@ jobs:
         run: uv run ruff check .
       
       - name: Run formatter check (ruff format)
-        run: uv run ruff format --check .
+        run: |
+          uv run ruff format --check . || (
+            echo "❌ Code formatting issues detected."
+            echo "💡 Run 'uv run ruff format .' locally to auto-fix."
+            exit 1
+          )
       
       - name: Run type checker (pyright)
         run: uv run pyright

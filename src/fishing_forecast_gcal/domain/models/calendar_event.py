@@ -60,9 +60,7 @@ class CalendarEvent:
             raise ValueError("title must not be empty")
 
         if len(self.title) > 50:
-            raise ValueError(
-                f"title must be 50 characters or less, got {len(self.title)}"
-            )
+            raise ValueError(f"title must be 50 characters or less, got {len(self.title)}")
 
         # location_idの検証
         if not self.location_id or not self.location_id.strip():
@@ -123,12 +121,10 @@ class CalendarEvent:
         # セクションを更新
         pattern = rf"(\[{section_name}\])(.*?)(?=\n\[|$)"
         updated_description = re.sub(
-            pattern,
-            rf"\1\n{new_content}",
-            self.description,
-            flags=re.DOTALL
+            pattern, rf"\1\n{new_content}", self.description, flags=re.DOTALL
         )
 
         # 新しいインスタンスを返す（dataclassのreplaceを使用）
         from dataclasses import replace
+
         return replace(self, description=updated_description)
