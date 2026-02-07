@@ -185,14 +185,19 @@
 
 ### 1.2 Infrastructure Layer（外部連携）
 
-#### T-006: 潮汐計算ライブラリアダプター
+#### T-006: 潮汐計算ライブラリアダプター ✅
 **責務**: UTideライブラリをラップして潮汐予測を実行
+
+**ステータス**: ✅ 完了（Issue #17）
 
 **成果物**:
 - `infrastructure/adapters/tide_calculation_adapter.py`
   - UTideライブラリの呼び出しロジック
-  - 調和定数データの読み込み
+  - 調和定数データの読み込み（pickle形式）
   - 潮汐予測の実行と結果の変換
+- `scripts/fetch_jma_tide_data.py`
+  - 気象庁の観測潮位データ取得・パーススクリプト
+  - UTide調和解析→pickle保存の自動化
 
 **テスト要件**:
 - ライブラリが正しく呼び出されること
