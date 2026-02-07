@@ -14,6 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
       - name: Install uv
         uses: astral-sh/setup-uv@v4
       
@@ -25,21 +30,18 @@ jobs:
       - name: Install Python dependencies
         run: uv sync
       
-      - name: Install unidic dictionary for MeCab
-        run: uv run python -m unidic download
-      
-      - name: Run tests with coverage
-        run: uv run pytest --cov=src --cov-report=xml --cov-report=term
-        continue-on-error: true
-      
       - name: Run linter (ruff check)
         run: uv run ruff check .
       
       - name: Run formatter check (ruff format)
         run: uv run ruff format --check .
       
-      - name: Run type checker (pyright strict mode)
+      - name: Run type checker (pyright)
         run: uv run pyright
+      
+      - name: Run tests with coverage
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: true
       
       # Optional: Upload coverage to Codecov
       # Uncomment when ready to integrate with Codecov
