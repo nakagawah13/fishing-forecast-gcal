@@ -1,9 +1,10 @@
 # Issue #13: T-002 リポジトリインターフェース定義
 
 ## ステータス
-- **状態**: In Progress
+- **状態**: ✅ Completed
 - **担当**: AI Assistant
 - **開始日**: 2026-02-08
+- **完了日**: 2026-02-08
 - **関連Issue**: [#13](https://github.com/nakagawah13/fishing-forecast-gcal/issues/13)
 - **依存**: T-001 (完了済み)
 
@@ -137,4 +138,66 @@ uv run pytest
 ---
 
 ## 実装結果・変更点
-（実装完了後に追記）
+
+### 実装完了日
+2026-02-08
+
+### 作成したファイル
+1. **リポジトリインターフェース**:
+   - `src/fishing_forecast_gcal/domain/repositories/tide_data_repository.py` (48行)
+   - `src/fishing_forecast_gcal/domain/repositories/weather_repository.py` (43行)
+   - `src/fishing_forecast_gcal/domain/repositories/calendar_repository.py` (91行)
+   - `src/fishing_forecast_gcal/domain/repositories/__init__.py` (14行) - エクスポート追加
+
+2. **テストファイル**:
+   - `tests/unit/domain/repositories/test_tide_data_repository.py` (87行)
+   - `tests/unit/domain/repositories/test_weather_repository.py` (100行)
+   - `tests/unit/domain/repositories/test_calendar_repository.py` (175行)
+   - `tests/unit/domain/repositories/__init__.py` (1行)
+
+### テスト結果
+- **総テスト数**: 67件（全テスト通過）
+- **新規テスト**: 11件
+  - ITideDataRepository: 3件
+  - IWeatherRepository: 4件
+  - ICalendarRepository: 4件
+- **カバレッジ**: 100%（新規作成ファイル）
+- **型チェック**: エラーなし（pyright）
+- **Lintチェック**: エラーなし（ruff）
+
+### コミット履歴
+1. `b7919f3` - docs: add T-002 implementation plan for repository interfaces
+2. `7b82336` - feat(domain): add repository interfaces for data access abstraction
+3. `d23f79e` - test(domain): add comprehensive tests for repository interfaces
+
+### 設計上の判断・変更点
+
+1. **Union型の採用**:
+   - `FishingCondition | None` と `CalendarEvent | None` で Optional を表現
+   - Python 3.10+ の新しい型表現を採用
+
+2. **抽象基底クラスパターン**:
+   - すべてのインターフェースで `abc.ABC` を継承
+   - `@abstractmethod` デコレータで実装を強制
+   - 直接インスタンス化を防止
+
+3. **冪等性の明示**:
+   - `ICalendarRepository.upsert_event()` は冪等操作として設計
+   - 複数回実行しても結果が同じになることをドキュメント化
+
+4. **テストでの Tide モデル修正**:
+   - 当初のテストで `high_tides` / `low_tides` を使用していたが、
+     実際のモデルは `events` を使用していたため修正
+   - `events` リストに満潮・干潮を混在させる設計に対応
+
+### 次のタスクへの影響
+- T-003（潮汐計算サービス）: 影響なし、予定通り着手可能
+- T-006（潮汐計算ライブラリアダプター）: `ITideDataRepository` の実装で使用
+- T-007（TideDataRepository 実装）: `ITideDataRepository` を実装する具象クラスを作成
+- T-008（Google Calendar API クライアント）: 並行して着手可能
+- T-009（CalendarRepository 実装）: `ICalendarRepository` を実装する具象クラスを作成
+
+### 所感
+- レイヤードアーキテクチャの責務分離が明確になり、今後の実装がスムーズに進むと予想
+- インターフェース駆動開発により、テスト容易性が向上
+- Phase 2（予報更新）に向けた `IWeatherRepository` の先行定義が完了
