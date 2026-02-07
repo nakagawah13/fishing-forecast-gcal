@@ -45,7 +45,6 @@
 │  - ユースケース実装                         │
 │    - SyncTideUseCase                     │
 │    - SyncWeatherUseCase                  │
-│    - UpdateCalendarEventUseCase          │
 │  - バッチオーケストレーション                 │
 └────────────────────────────────────────┘
            │
@@ -74,7 +73,6 @@
 │    - WeatherApiClient                    │
 │  - データソース                            │
 │    - TideCalculationLibraryAdapter       │
-│    - ConfigFileLoader                    │
 │  - リポジトリ実装                        │
 │    - TideDataRepository                  │
 │    - WeatherRepository                   │
@@ -157,21 +155,6 @@ class SyncWeatherUseCase:
         # 2. 既存カレンダーイベント取得
         # 3. 予報セクションを更新
         # 4. イベント更新
-        ...
-```
-
-#### `UpdateCalendarEventUseCase`
-単一イベントの更新処理
-
-```python
-class UpdateCalendarEventUseCase:
-    def __init__(self, calendar_repo: ICalendarRepository):
-        ...
-
-    def execute(self, event: CalendarEvent) -> None:
-        # 1. イベントIDの生成
-        # 2. 既存イベントの確認
-        # 3. upsert実行
         ...
 ```
 
