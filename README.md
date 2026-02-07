@@ -21,6 +21,24 @@
 3. OAuth のクレデンシャル/トークンパスを設定し、認証情報を配置
 4. `forecast_window_days` を確認（予報更新範囲）
 
+## クイックスタート（MVP・案）
+MVPは CLI アプリとして動かす前提。
+
+1. リポジトリを取得
+2. `uv sync` で依存関係をセットアップ
+3. `config/config.yaml.template` をコピーして `config/config.yaml` を作成
+4. `google_credentials_path` に OAuth クレデンシャルを配置
+5. 初回認証で `config/token.json` を生成
+6. スケジューラーを起動して定期実行
+
+注記:
+- 初回認証・スケジューラー起動の CLI コマンドは実装計画で確定予定
+- OAuth の同意画面が Testing の場合、リフレッシュトークン期限に注意
+
+## 配布方法（MVP）
+- 推奨: ソースコード配布 + `uv` による環境構築
+- 次のステップ: Docker 化（常時稼働環境向け）
+
 ## 開発環境（uv 前提）
 uv を使った Python 開発を前提とする。
 

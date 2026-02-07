@@ -12,6 +12,7 @@
 - 天文潮の取得方式の決定
 - タイドグラフ画像の表現方針は後続フェーズで検討
 - 開発環境（uv 前提）の手順をドキュメント化
+- 配布/セットアップ手順の草案化（uv 前提、Docker は後続）
 - 更新ウィンドウ（Sync-Tide/Sync-Weather）の範囲を決定
 - **レイヤードアーキテクチャの詳細設計**
 
@@ -50,6 +51,19 @@
 - ユーザー編集は `[NOTES]` のみを対象とし、セクション名は変更しない
 - 破損対策: セクションが欠落している場合は自動更新をスキップし、ログで警告する（メモ保護を優先）
 - イベント ID 生成: `calendar_id + location_id + date` を素材に安定ハッシュで生成
+
+## セットアップフロー（案）
+1. GCP プロジェクト作成
+2. Google Calendar API を有効化
+3. OAuth 同意画面を Testing で設定（テストユーザー登録）
+4. Desktop App の OAuth クライアント ID を作成し `credentials.json` を配置
+5. `uv sync` で依存関係をセットアップ
+6. `config/config.yaml` を作成し `google_credentials_path` を設定
+7. 初回認証で `config/token.json` を生成（CLI コマンドは確定後に記載）
+8. スケジューラー起動（CLI コマンドは確定後に記載）
+
+注記:
+- OAuth の同意画面が Testing の場合、リフレッシュトークン期限に注意
 
 ---
 
