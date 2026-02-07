@@ -206,7 +206,7 @@ class FishingCondition:
     wind_speed: float  # m/s
     wind_direction: str
     pressure: float  # hPa
-    is_fishable: bool  # 釣行可否
+    alert_level: Literal["safe", "warning", "danger"]  # 注意レベル
 
 @dataclass
 class CalendarEvent:
@@ -215,7 +215,17 @@ class CalendarEvent:
     title: str
     date: date
     description: str
+    location_id: str
     location_name: str
+
+@dataclass
+class Location:
+    """地点情報"""
+    id: str  # 不変ID
+    name: str
+    latitude: float
+    longitude: float
+    port_code: str
 ```
 
 #### ドメインサービス

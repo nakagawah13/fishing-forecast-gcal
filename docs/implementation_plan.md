@@ -47,7 +47,9 @@
 - 更新方針:
   - Sync-Tide はタイトルと `[TIDE]` を更新（予報・メモは保持）
   - Sync-Weather は `[FORECAST]` のみ更新（他セクションは保持）
-- イベント ID 生成: `calendar_id + location + date` を素材に安定ハッシュで生成
+- ユーザー編集は `[NOTES]` のみを対象とし、セクション名は変更しない
+- 破損対策: セクションが欠落している場合は自動更新をスキップし、ログで警告する（メモ保護を優先）
+- イベント ID 生成: `calendar_id + location_id + date` を素材に安定ハッシュで生成
 
 ---
 
@@ -67,11 +69,11 @@
 - `domain/models/tide.py`
   - `Tide`, `TideEvent`, `TideType` クラス
 - `domain/models/fishing_condition.py`
-  - `FishingCondition` クラス
+  - `FishingCondition` クラス（注意レベルを含む）
 - `domain/models/calendar_event.py`
   - `CalendarEvent` クラス
 - `domain/models/location.py`
-  - `Location` クラス
+  - `Location` クラス（不変IDを含む）
 
 **テスト要件**:
 - 各モデルのインスタンス化テスト
@@ -201,7 +203,7 @@
 - `infrastructure/repositories/calendar_repository.py`
   - `ICalendarRepository` の実装
   - DomainモデルとGoogle API形式の変換
-  - イベントID生成（`calendar_id + location + date` を素材に MD5 ハッシュ）
+  - イベントID生成（`calendar_id + location_id + date` を素材に MD5 ハッシュ）
   - upsertロジック
 
 **テスト要件**:
@@ -243,6 +245,7 @@
   - YAMLパース
   - スキーマ検証
   - Locationモデルへのマッピング
+  - Locationの不変ID（`locations[].id`）の読み込み
   - OAuth 認証パス（`google_credentials_path`, `google_token_path`）の読み込み
 
 **テスト要件**:
@@ -337,6 +340,7 @@
   - 天文潮セクション生成
   - 予報セクション生成
   - `[TIDE]`, `[FORECAST]`, `[NOTES]` セクションを使った差分更新
+  - セクション欠落時は更新をスキップして警告ログ
 
 **テスト要件**:
 - 本文の生成テスト
@@ -414,6 +418,8 @@
 **成果物**:
 - 構造化ログ（JSONフォーマット）
 - バッチ実行統計（成功/失敗件数、実行時間）
+  - JSONキー一覧（例）: `job_name`, `location_id`, `status`, `duration_ms`, `started_at`, `finished_at`, `error_type`, `error_message`
+  - MVPでは開始/終了/例外ログを先行実装
 
 **依存**: 全UseCase
 
@@ -423,8 +429,8 @@
 **責務**: 設定ファイルで複数地点を扱えるようにする
 
 **成果物**:
-- `config.yaml` に `locations` 配列を追加
-- UseCaseにループ処理を追加
+- `locations` 配列の複数要素をサポート
+- UseCaseに地点ループ処理を追加
 - 地点別のカレンダー分離オプション
 
 **依存**: T-011
@@ -438,6 +444,10 @@
 - Google カレンダー API のイベント ID 制約確認
 - 公式/準公式データの利用規約と安定性確認
 - 本文の自動生成セクションの仕様確定
+- `extendedProperties` に管理タグ・更新ハッシュを持たせるかの判断
+- 設定から外れた地点の未来イベント削除（ガベージコレクション）の方針
+- 予報値に差分がない場合の更新スキップ方針
+- 時合い帯の時間指定イベント化（別カレンダー運用を含む）
 - MVP運用結果を踏まえた `trips` 導入タスクの要件・設計・テスト観点の再検討
 - MVP運用結果を踏まえた `trips_calendar` 運用ルール（重複防止・更新対象）の再検討
 
