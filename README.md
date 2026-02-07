@@ -10,14 +10,16 @@
 ## 状況
 - まずは MVP（天文潮ベースの予定作成）を優先
 - 風速などの予報値は直前更新フェーズで扱う
+- MVP は終日イベント運用（詳細は `docs/requirements.md` を参照）
 
 ## 設定ファイル
 個人の地点情報を含むため、実体ファイルは Git 管理しない。
 
 手順:
 1. `config/config.yaml.template` を `config/config.yaml` にコピー
-2. 地点情報とカレンダー ID を設定
-3. `forecast_window_days` を確認（予報更新範囲）
+2. 地点情報（`locations[].id` を含む）とカレンダー ID を設定
+3. OAuth のクレデンシャル/トークンパスを設定し、認証情報を配置
+4. `forecast_window_days` を確認（予報更新範囲）
 
 ## 開発環境（uv 前提）
 uv を使った Python 開発を前提とする。

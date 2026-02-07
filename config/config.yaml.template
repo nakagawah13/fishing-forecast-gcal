@@ -12,7 +12,8 @@ settings:
   calendar_id: "your_fishing_calendar_id@group.calendar.google.com"
 
 locations:
-  - name: "Home"
+  - id: "loc_home"  # 不変ID（表示名を変えてもIDは維持）
+    name: "Home"
     latitude: 35.0000
     longitude: 139.0000
     port_code: "PLACEHOLDER"
