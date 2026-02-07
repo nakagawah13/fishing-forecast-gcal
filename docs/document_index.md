@@ -2,8 +2,45 @@
 
 このリポジトリのドキュメント一覧です。
 
-- 全体アーキテクチャ: [architecture.md](architecture.md)
-- 要件整理: [requirements.md](requirements.md)
-- データソース候補: [data_sources.md](data_sources.md)
-- 実装計画: [implementation_plan.md](implementation_plan.md)
-- Gemini 会話整理: [conversation_gemini.md](conversation_gemini.md)
+## 主要ドキュメント
+
+- **全体アーキテクチャ**: [architecture.md](architecture.md)
+  - レイヤードアーキテクチャの詳細
+  - 各層の責務と依存関係
+  - データフロー
+
+- **要件整理**: [requirements.md](requirements.md)
+  - 具体的なユースケース（3ペルソナ）
+  - 機能要件と非機能要件
+  - 更新頻度の妥当性検証
+  - 設定ファイルスキーマ
+
+- **データソース候補**: [data_sources.md](data_sources.md)
+  - 潮汐データの取得方式
+  - 気象予報APIの候補
+
+- **実装計画**: [implementation_plan.md](implementation_plan.md)
+  - フェーズ別タスク分割
+  - レイヤードアーキテクチャに基づく責務の小分け
+  - 各タスクの依存関係とテスト要件
+
+- **タスク表**: [task_table.md](task_table.md)
+  - 実装計画のタスク一覧（Issue 連携用）
+  - Issue ドリブンの運用手順
+
+- **Gemini 会話整理**: [conversation_gemini.md](conversation_gemini.md)
+
+## ドキュメント更新履歴
+
+### 2026-02-07
+- **ユースケース追加**: 週末アングラー、早朝アングラー、遠征計画者の3ペルソナを定義
+- **更新頻度検証**: 6時間 → 3時間に変更（気象庁の更新頻度に合わせる）
+- **レイヤードアーキテクチャ導入**: 責務の明確化、テスト容易性、保守性向上
+- **タスク小分け**: 各層ごとに独立した開発・テスト可能なタスクに分割
+- **設定ファイル拡張**: 釣行判断閾値、優先更新時間帯を追加
+- **MVP範囲明確化**: 遠征カレンダー（trips）をMVP対象外に整理
+- **MVPイベント設計補強**: セクション破損時の更新スキップ、location ID導入、OAuth設定を追記
+- **セットアップ導線追加**: クイックスタートとGCP/OAuth準備の流れを補足
+
+### 2026-02-08
+- **タスク表追加**: Issue 連携前提のタスク一覧と運用手順を追加

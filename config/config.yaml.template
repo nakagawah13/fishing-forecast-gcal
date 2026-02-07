@@ -1,0 +1,24 @@
+# Copy this file to config/config.yaml and fill your values.
+# Keep config/config.yaml out of git to avoid leaking personal locations.
+
+settings:
+  timezone: "Asia/Tokyo"
+  update_interval_hours: 3  # 更新: 6 → 3（気象庁の更新頻度に合わせる）
+  forecast_window_days: 7
+  tide_register_months: 12  # 追加: 天文潮を何ヶ月先まで登録するか
+  high_priority_hours: [4, 5, 6, 7, 20, 21, 22, 23]  # 追加: 優先更新時間帯（早朝・夜間）
+  google_credentials_path: "config/credentials.json"  # OAuth クライアント情報
+  google_token_path: "config/token.json"  # OAuth トークン保存先
+  calendar_id: "your_fishing_calendar_id@group.calendar.google.com"
+
+locations:
+  - id: "loc_home"  # 不変ID（表示名を変えてもIDは維持）
+    name: "Home"
+    latitude: 35.0000
+    longitude: 139.0000
+    port_code: "PLACEHOLDER"
+
+fishing_conditions:  # 追加: 釣行判断の閾値設定
+  prime_time_offset_hours: 2  # 満潮前後の時合い帯
+  max_wind_speed_ms: 10  # 釣行中止の風速閾値
+  preferred_tide_types: ["大潮", "中潮"]  # 優先する潮回り
