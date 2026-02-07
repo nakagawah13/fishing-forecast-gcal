@@ -1,5 +1,6 @@
 """カレンダーイベントモデルのテスト"""
 
+import dataclasses
 from datetime import date
 
 import pytest
@@ -284,5 +285,5 @@ class TestCalendarEvent:
             date=date(2026, 2, 8),
             location_id="tokyo_bay"
         )
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             event.title = "新しいタイトル"  # type: ignore

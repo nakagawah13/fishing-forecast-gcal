@@ -1,5 +1,7 @@
 """地点情報モデルのテスト"""
 
+import dataclasses
+
 import pytest
 
 from fishing_forecast_gcal.domain.models.location import Location
@@ -145,5 +147,5 @@ class TestLocation:
             latitude=35.6762,
             longitude=139.6503
         )
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             location.name = "相模湾"  # type: ignore

@@ -1,6 +1,7 @@
 """潮汐モデルのテスト"""
 
-from datetime import date, datetime, timezone
+import dataclasses
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -31,7 +32,7 @@ class TestTideEvent:
     def test_create_valid_high_tide_event(self) -> None:
         """正常な満潮イベントを作成できること"""
         event = TideEvent(
-            time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+            time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
             height_cm=162.0,
             event_type="high"
         )
@@ -42,7 +43,7 @@ class TestTideEvent:
     def test_create_valid_low_tide_event(self) -> None:
         """正常な干潮イベントを作成できること"""
         event = TideEvent(
-            time=datetime(2026, 2, 8, 12, 34, tzinfo=timezone.utc),
+            time=datetime(2026, 2, 8, 12, 34, tzinfo=UTC),
             height_cm=58.0,
             event_type="low"
         )
@@ -54,7 +55,7 @@ class TestTideEvent:
         """負の潮位でエラーが発生すること"""
         with pytest.raises(ValueError, match="height_cm must be between 0 and 500"):
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=-10.0,
                 event_type="high"
             )
@@ -63,7 +64,7 @@ class TestTideEvent:
         """500cmを超える潮位でエラーが発生すること"""
         with pytest.raises(ValueError, match="height_cm must be between 0 and 500"):
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=501.0,
                 event_type="high"
             )
@@ -82,7 +83,7 @@ class TestTideEvent:
         # Note: 型ヒントで制約されるが、実行時チェックも実施
         with pytest.raises(ValueError, match="event_type must be 'high' or 'low'"):
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="invalid"  # type: ignore
             )
@@ -90,11 +91,11 @@ class TestTideEvent:
     def test_tide_event_is_immutable(self) -> None:
         """TideEventが不変であること"""
         event = TideEvent(
-            time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+            time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
             height_cm=162.0,
             event_type="high"
         )
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             event.height_cm = 200.0  # type: ignore
 
 
@@ -105,12 +106,12 @@ class TestTide:
         """正常な潮汐情報を作成できること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
             TideEvent(
-                time=datetime(2026, 2, 8, 12, 34, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 12, 34, tzinfo=UTC),
                 height_cm=58.0,
                 event_type="low"
             ),
@@ -119,8 +120,8 @@ class TestTide:
             date=date(2026, 2, 8),
             tide_type=TideType.SPRING,
             events=events,
-            prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=timezone.utc),
-            prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=timezone.utc)
+            prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
+            prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=UTC)
         )
         assert tide.date == date(2026, 2, 8)
         assert tide.tide_type == TideType.SPRING
@@ -141,12 +142,12 @@ class TestTide:
         """時系列順でないeventsでエラーが発生すること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 12, 34, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 12, 34, tzinfo=UTC),
                 height_cm=58.0,
                 event_type="low"
             ),
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -162,7 +163,7 @@ class TestTide:
         """prime_time_startのみ設定でエラーが発生すること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -172,7 +173,7 @@ class TestTide:
                 date=date(2026, 2, 8),
                 tide_type=TideType.SPRING,
                 events=events,
-                prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=timezone.utc),
+                prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
                 prime_time_end=None
             )
 
@@ -180,7 +181,7 @@ class TestTide:
         """prime_time_endのみ設定でエラーが発生すること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -191,14 +192,14 @@ class TestTide:
                 tide_type=TideType.SPRING,
                 events=events,
                 prime_time_start=None,
-                prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=timezone.utc)
+                prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=UTC)
             )
 
     def test_prime_time_start_after_end_raises_error(self) -> None:
         """prime_time_start >= prime_time_endでエラーが発生すること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -208,15 +209,15 @@ class TestTide:
                 date=date(2026, 2, 8),
                 tide_type=TideType.SPRING,
                 events=events,
-                prime_time_start=datetime(2026, 2, 8, 8, 12, tzinfo=timezone.utc),
-                prime_time_end=datetime(2026, 2, 8, 4, 12, tzinfo=timezone.utc)
+                prime_time_start=datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
+                prime_time_end=datetime(2026, 2, 8, 4, 12, tzinfo=UTC)
             )
 
     def test_tide_without_prime_time_is_valid(self) -> None:
         """prime_timeなしの潮汐情報が有効であること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -233,7 +234,7 @@ class TestTide:
         """Tideが不変であること"""
         events = [
             TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=timezone.utc),
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC),
                 height_cm=162.0,
                 event_type="high"
             ),
@@ -243,5 +244,5 @@ class TestTide:
             tide_type=TideType.SPRING,
             events=events
         )
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             tide.tide_type = TideType.NEAP  # type: ignore

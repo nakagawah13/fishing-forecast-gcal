@@ -81,15 +81,7 @@ python_functions = ["test_*"]
 addopts = "--cov=src --cov-report=term-missing --cov-report=html"
 
 [tool.pyright]
-typeCheckingMode = "basic"
 pythonVersion = "3.13"
+typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
-include = ["src"]
-exclude = [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/.*",
-]
-reportMissingImports = true
-reportMissingTypeStubs = false

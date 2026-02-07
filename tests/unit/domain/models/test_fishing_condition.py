@@ -1,6 +1,7 @@
 """釣行条件モデルのテスト"""
 
-from datetime import datetime, timezone
+import dataclasses
+from datetime import UTC, datetime
 
 import pytest
 
@@ -16,7 +17,7 @@ class TestFishingCondition:
             wind_speed_mps=5.0,
             wind_direction="北",
             pressure_hpa=1012.0,
-            forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+            forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
             warning_level="safe"
         )
         assert condition.wind_speed_mps == 5.0
@@ -31,7 +32,7 @@ class TestFishingCondition:
                 wind_speed_mps=-1.0,
                 wind_direction="北",
                 pressure_hpa=1012.0,
-                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
                 warning_level="safe"
             )
 
@@ -42,7 +43,7 @@ class TestFishingCondition:
                 wind_speed_mps=51.0,
                 wind_direction="北",
                 pressure_hpa=1012.0,
-                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
                 warning_level="safe"
             )
 
@@ -53,7 +54,7 @@ class TestFishingCondition:
                 wind_speed_mps=5.0,
                 wind_direction="北",
                 pressure_hpa=899.0,
-                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
                 warning_level="safe"
             )
 
@@ -64,7 +65,7 @@ class TestFishingCondition:
                 wind_speed_mps=5.0,
                 wind_direction="北",
                 pressure_hpa=1101.0,
-                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
                 warning_level="safe"
             )
 
@@ -86,7 +87,7 @@ class TestFishingCondition:
                 wind_speed_mps=5.0,
                 wind_direction="北",
                 pressure_hpa=1012.0,
-                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+                forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
                 warning_level="invalid"  # type: ignore
             )
 
@@ -96,10 +97,10 @@ class TestFishingCondition:
             wind_speed_mps=5.0,
             wind_direction="北",
             pressure_hpa=1012.0,
-            forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=timezone.utc),
+            forecast_time=datetime(2026, 2, 8, 6, 0, tzinfo=UTC),
             warning_level="safe"
         )
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             condition.wind_speed_mps = 10.0  # type: ignore
 
 
