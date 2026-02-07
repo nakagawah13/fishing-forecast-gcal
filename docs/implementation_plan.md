@@ -8,7 +8,7 @@
 
 ## フェーズ 0: 仕様確定（短期）
 - 対象地点、期間、出力フォーマットの合意
-- Google カレンダーのイベント設計（タイトル/本文/タイムゾーン/更新方針）
+- Google カレンダーのイベント設計（MVP 仕様を確定、詳細は下記参照）
 - 天文潮の取得方式の決定
 - タイドグラフ画像の表現方針は後続フェーズで検討
 - 開発環境（uv 前提）の手順をドキュメント化
@@ -21,6 +21,33 @@
 - 設定ファイルはテンプレート運用（実体は Git 管理しない）
 - **レイヤードアーキテクチャを採用**（責務分離、テスト容易性、保守性向上）
 - **更新間隔を 3 時間ごとに短縮**（気象庁の更新頻度に合わせる）
+- MVP では遠征カレンダー（trips）の運用を扱わない
+
+## イベント設計（MVP）
+- 種別: 終日イベント（`settings.timezone` の日付基準）
+- タイトル: `潮汐 {location_name} ({tide_type})`
+- 本文構造: 予報更新の差分反映を前提に、セクションを明示的に区切る
+
+本文フォーマット（例）:
+```
+[TIDE]
+- 満潮: 06:12 (162cm)
+- 干潮: 12:34 (58cm)
+- 時合い: 04:12-08:12
+
+[FORECAST]
+- 風速: 5m/s
+- 風向: 北
+- 気圧: 1012hPa
+
+[NOTES]
+- 手動メモ（ここは自動更新で保持）
+```
+
+- 更新方針:
+  - Sync-Tide はタイトルと `[TIDE]` を更新（予報・メモは保持）
+  - Sync-Weather は `[FORECAST]` のみ更新（他セクションは保持）
+- イベント ID 生成: `calendar_id + location + date` を素材に安定ハッシュで生成
 
 ---
 
@@ -156,6 +183,7 @@
 **成果物**:
 - `infrastructure/clients/google_calendar_client.py`
   - OAuth2認証
+  - `settings.google_credentials_path` と `settings.google_token_path` を使用
   - イベント作成・get・更新API呼び出し
 
 **テスト要件**:
@@ -173,7 +201,7 @@
 - `infrastructure/repositories/calendar_repository.py`
   - `ICalendarRepository` の実装
   - DomainモデルとGoogle API形式の変換
-  - イベントID生成（MD5ハッシュ）
+  - イベントID生成（`calendar_id + location + date` を素材に MD5 ハッシュ）
   - upsertロジック
 
 **テスト要件**:
@@ -215,6 +243,7 @@
   - YAMLパース
   - スキーマ検証
   - Locationモデルへのマッピング
+  - OAuth 認証パス（`google_credentials_path`, `google_token_path`）の読み込み
 
 **テスト要件**:
 - 正常なYAMLのパース
@@ -307,7 +336,7 @@
 - `domain/services/event_description_formatter.py`
   - 天文潮セクション生成
   - 予報セクション生成
-  - セパレーターを使った差分更新
+  - `[TIDE]`, `[FORECAST]`, `[NOTES]` セクションを使った差分更新
 
 **テスト要件**:
 - 本文の生成テスト
@@ -409,6 +438,8 @@
 - Google カレンダー API のイベント ID 制約確認
 - 公式/準公式データの利用規約と安定性確認
 - 本文の自動生成セクションの仕様確定
+- MVP運用結果を踏まえた `trips` 導入タスクの要件・設計・テスト観点の再検討
+- MVP運用結果を踏まえた `trips_calendar` 運用ルール（重複防止・更新対象）の再検討
 
 ---
 

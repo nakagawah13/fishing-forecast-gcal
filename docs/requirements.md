@@ -69,7 +69,7 @@
 **機能要求**:
 - 長期潮汐データ（3ヶ月〜1年先）の事前登録
 - 複数地点の潮汐を別カレンダーに登録（MVP外）
-- 遠征用カレンダー（trips_calendar_id）への手動イベント追加との共存
+- 遠征用カレンダーへの手動イベント追加との共存（MVP以降で検討）
 
 ---
 
@@ -80,12 +80,11 @@
 | 更新対象 | 現行設定 | 妥当性評価 | 根拠 |
 |---------|---------|-----------|------|
 | 天文潮（Sync-Tide） | 月次 | ✅ 妥当 | 天文潮は変化しないため、長期登録で十分 |
-| 予報（Sync-Weather） | 6時間ごと | ⚠️ 要検討 | 気象庁は3時間ごと更新。早朝判断には不足の可能性 |
+| 予報（Sync-Weather） | 3時間ごと | ✅ 妥当 | 気象庁は3時間ごと更新。早朝判断の頻度要件に一致 |
 | 予報対象期間 | 7日先まで | ✅ 妥当 | 週末アングラーの金曜確認、早朝アングラーの当日確認に対応 |
 | 天文潮登録期間 | 1年先まで | ✅ 妥当 | 遠征計画（1-3ヶ月前）に対応可能 |
 
-**推奨事項**:
-- Sync-Weather の更新間隔を **3時間ごと** に短縮（設定可能にする）
+**補足事項**:
 - 早朝時間帯（4:00-7:00）は更新頻度を上げる（優先度高）
 - 設定ファイルで `update_interval_hours` をカスタマイズ可能にする
 
@@ -124,9 +123,11 @@
 - 形式: `config/config.yaml`
 - 地点: ホーム 1 地点のみ
 - 目的: UI を作らずに運用可能にする（設定変更で対応）
-- 遠征対応: 別カレンダーへの登録を前提に運用
+- 遠征対応: MVP 以降で検討
 - `config/config.yaml` は Git 管理しない（居住地情報の漏洩を避ける）
 - `config/config.yaml.template` をコミットし、テンプレート運用とする
+- Google Calendar の OAuth 認証情報とトークンは `settings` のパス指定で読み込む
+- Google アカウントの個人情報は設定ファイルに含めない（OAuth のクレデンシャルとトークンのみで運用）
 
 ## 設定ファイルスキーマ（MVP）
 ```yaml
@@ -136,8 +137,9 @@ settings:
   forecast_window_days: 7
   tide_register_months: 12  # 追加: 天文潮を何ヶ月先まで登録するか
   high_priority_hours: [4, 5, 6, 7, 20, 21, 22, 23]  # 追加: 優先更新時間帯
+  google_credentials_path: "config/credentials.json"  # OAuth クライアント情報
+  google_token_path: "config/token.json"  # OAuth トークン保存先
   calendar_id: "your_fishing_calendar_id@group.calendar.google.com"
-  trips_calendar_id: "your_trips_calendar_id@group.calendar.google.com"
 
 locations:
   - name: "Home"
@@ -151,6 +153,32 @@ fishing_conditions:  # 追加: 釣行判断の閾値設定
   preferred_tide_types: ["大潮", "中潮"]  # 優先する潮回り
 ```
 
+## イベント設計（MVP）
+- 種別: 終日イベント（`settings.timezone` の日付基準）
+- タイトル: `潮汐 {location_name} ({tide_type})`
+- 本文構造: 予報更新の差分反映を前提に、セクションを明示的に区切る
+
+本文フォーマット（例）:
+```
+[TIDE]
+- 満潮: 06:12 (162cm)
+- 干潮: 12:34 (58cm)
+- 時合い: 04:12-08:12
+
+[FORECAST]
+- 風速: 5m/s
+- 風向: 北
+- 気圧: 1012hPa
+
+[NOTES]
+- 手動メモ（ここは自動更新で保持）
+```
+
+- 更新方針:
+  - Sync-Tide はタイトルと `[TIDE]` を更新（予報・メモは保持）
+  - Sync-Weather は `[FORECAST]` のみ更新（他セクションは保持）
+- イベント ID 生成: `calendar_id + location + date` を素材に安定ハッシュで生成
+
 ## 決定事項（MVP）
 - イベントはテキストのみで運用し、画像は後続フェーズで検討
 - 終日イベント + 説明文に詳細時刻を集約（視認性を優先）
@@ -158,10 +186,10 @@ fishing_conditions:  # 追加: 釣行判断の閾値設定
 - 計算ライブラリ採用時は公式潮見表で差分検証を行う
 - 時合い帯の既定は「満潮前後 2 時間」
 - 予報更新は `forecast_window_days` の範囲のみを対象にする
+- イベント ID は安定したハッシュで生成する（詳細は実装計画に従う）
+- MVP では遠征カレンダー（trips）の運用を扱わない
 
 ## 未決事項
-- Google カレンダーのイベント設計（タイトル/本文/タイムゾーン/更新方針）
-- イベント ID の制約確認と生成方式
 - 公式/準公式データの入手可否と利用規約
 - 潮回り（大潮/中潮/小潮など）を含むデータソースの採用可否
 
