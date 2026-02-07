@@ -31,7 +31,7 @@
 | Task ID | Phase | Title | Plan Link | Issue | Status |
 | --- | --- | --- | --- | --- | --- |
 | T-001 | 1.1 | ドメインモデル定義 | [implementation_plan.md](implementation_plan.md#t-001-ドメインモデル定義) | [#12](https://github.com/nakagawah13/fishing-forecast-gcal/issues/12) | ✅ Completed |
-| T-002 | 1.1 | リポジトリインターフェース定義 | [implementation_plan.md](implementation_plan.md#t-002-リポジトリインターフェース定義) | [#13](https://github.com/nakagawah13/fishing-forecast-gcal/issues/13) | Not Started |
+| T-002 | 1.1 | リポジトリインターフェース定義 | [implementation_plan.md](implementation_plan.md#t-002-リポジトリインターフェース定義) | [#13](https://github.com/nakagawah13/fishing-forecast-gcal/issues/13) | ✅ Completed |
 | T-003 | 1.1 | 潮汐計算サービス | [implementation_plan.md](implementation_plan.md#t-003-潮汐計算サービス) | [#14](https://github.com/nakagawah13/fishing-forecast-gcal/issues/14) | Not Started |
 | T-004 | 1.1 | 潮回り判定サービス | [implementation_plan.md](implementation_plan.md#t-004-潮回り判定サービス) | [#15](https://github.com/nakagawah13/fishing-forecast-gcal/issues/15) | Not Started |
 | T-005 | 1.1 | 時合い帯特定サービス | [implementation_plan.md](implementation_plan.md#t-005-時合い帯特定サービス) | [#16](https://github.com/nakagawah13/fishing-forecast-gcal/issues/16) | Not Started |
