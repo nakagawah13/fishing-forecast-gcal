@@ -1,8 +1,9 @@
 # Issue #16: T-005 時合い帯特定サービス
 
-**ステータス**: In Progress  
-**開始日**: 2026-02-08  
-**担当**: AI Assistant  
+**ステータス**: ✅ Completed
+**開始日**: 2026-02-08
+**完了日**: 2026-02-08
+**担当**: AI Assistant
 **Epic**: Phase 1.1 - Domain Layer
 
 ## 概要
@@ -111,3 +112,67 @@ class PrimeTimeFinder:
 - [implementation_plan.md](../implementation_plan.md#t-005-時合い帯特定サービス)
 - [Issue #16](https://github.com/nakagawah13/fishing-forecast-gcal/issues/16)
 - 既存サービス: `tide_calculation_service.py`, `tide_type_classifier.py`
+
+---
+
+## 実装結果・変更点
+
+### 完了日
+2026-02-08
+
+### 成果物
+
+#### 実装ファイル
+- ✅ `src/fishing_forecast_gcal/domain/services/prime_time_finder.py`
+  - `PrimeTimeFinder` クラス実装
+  - `find()` メソッド: 満潮前後の時合い帯を計算
+  - 満潮時刻から±2時間を計算（timedelta使用）
+  - 複数満潮時は最初の満潮を基準とする実装
+
+#### テストファイル
+- ✅ `tests/unit/domain/services/test_prime_time_finder.py`
+  - 7つのテストケース実装
+  - カバレッジ100%達成
+
+### テスト結果
+
+| テストケース | 結果 | 備考 |
+|------------|------|------|
+| 基本ケース | ✅ Pass | 12:00満潮 → (10:00, 14:00) |
+| 複数満潮 | ✅ Pass | 最初の満潮を使用 |
+| 日付跨ぎ（前） | ✅ Pass | 01:00満潮 → (前日23:00, 03:00) |
+| 日付跨ぎ（後） | ✅ Pass | 23:00満潮 → (21:00, 翌日01:00) |
+| 満潮なし | ✅ Pass | Noneを返す |
+| 空リスト | ✅ Pass | Noneを返す |
+| 満干潮混在 | ✅ Pass | 最初の満潮を正しく抽出 |
+
+**全体テスト**: 105件すべて通過 ✅
+
+### 品質チェック
+
+| チェック項目 | 結果 | 備考 |
+|------------|------|------|
+| pytest | ✅ Pass | 105件すべて通過 |
+| ruff format | ✅ Pass | フォーマット変更なし |
+| ruff check | ✅ Pass | 自動修正完了（timezone.utc → datetime.UTC） |
+| pyright | ✅ Pass | 型エラーなし |
+| カバレッジ | 100% | prime_time_finder.py |
+
+### コミット履歴
+
+1. `88d3bab` - feat(domain): implement PrimeTimeFinder service
+2. `158e0fa` - test(domain): add comprehensive tests for PrimeTimeFinder
+3. `dc91641` - docs: add issue #16 implementation plan
+4. `d9bc682` - style: use datetime.UTC alias in tests
+
+### 設計上の決定事項
+
+1. **最初の満潮を基準**: 複数の満潮がある場合、時系列順で最初の満潮を時合い帯の基準とする
+2. **None返却**: 満潮がない場合（干潮のみ、空リスト）は `None` を返す
+3. **日付境界**: datetimeのtimedelta演算により、日付を跨ぐ場合も自動的に正しく計算される
+4. **型安全性**: 戻り値は `tuple[datetime, datetime] | None` で明確に型定義
+
+### 今後の統合予定
+
+- `SyncTideUseCase` 実装時（T-010）に本サービスを使用
+- `Tide` モデルの `prime_time_start` / `prime_time_end` 属性に値を設定
