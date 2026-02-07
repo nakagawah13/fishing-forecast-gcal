@@ -18,13 +18,13 @@
 | Task ID | Phase | Title | Plan Link | Issue | Status |
 | --- | --- | --- | --- | --- | --- |
 | F0-01 | 0 | 対象地点/期間/出力フォーマットの合意 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#4](https://github.com/nakagawah13/fishing-forecast-gcal/issues/4) | Not Started |
-| F0-02 | 0 | Google カレンダーのイベント設計確定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#5](https://github.com/nakagawah13/fishing-forecast-gcal/issues/5) | Not Started |
-| F0-03 | 0 | 天文潮の取得方式を決定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#6](https://github.com/nakagawah13/fishing-forecast-gcal/issues/6) | Not Started |
-| F0-04 | 0 | タイドグラフ画像の表現方針（後続検討） | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#7](https://github.com/nakagawah13/fishing-forecast-gcal/issues/7) | Not Started |
-| F0-05 | 0 | 開発環境手順（uv）をドキュメント化 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#8](https://github.com/nakagawah13/fishing-forecast-gcal/issues/8) | Not Started |
+| F0-02 | 0 | Google カレンダーのイベント設計確定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#5](https://github.com/nakagawah13/fishing-forecast-gcal/issues/5) | ✅ Completed |
+| F0-03 | 0 | 天文潮の取得方式を決定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#6](https://github.com/nakagawah13/fishing-forecast-gcal/issues/6) | ✅ Completed |
+| F0-04 | 0 | タイドグラフ画像の表現方針（後続検討） | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#7](https://github.com/nakagawah13/fishing-forecast-gcal/issues/7) | ✅ Completed |
+| F0-05 | 0 | 開発環境手順（uv）をドキュメント化 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#8](https://github.com/nakagawah13/fishing-forecast-gcal/issues/8) | ✅ Completed |
 | F0-06 | 0 | 配布/セットアップ手順の草案化 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#9](https://github.com/nakagawah13/fishing-forecast-gcal/issues/9) | Not Started |
-| F0-07 | 0 | 更新ウィンドウの範囲を決定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#10](https://github.com/nakagawah13/fishing-forecast-gcal/issues/10) | Not Started |
-| F0-08 | 0 | レイヤードアーキテクチャの詳細設計 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#11](https://github.com/nakagawah13/fishing-forecast-gcal/issues/11) | Not Started |
+| F0-07 | 0 | 更新ウィンドウの範囲を決定 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#10](https://github.com/nakagawah13/fishing-forecast-gcal/issues/10) | ✅ Completed |
+| F0-08 | 0 | レイヤードアーキテクチャの詳細設計 | [implementation_plan.md](implementation_plan.md#フェーズ-0-仕様確定短期) | [#11](https://github.com/nakagawah13/fishing-forecast-gcal/issues/11) | ✅ Completed |
 
 ## フェーズ 1（MVP）
 
