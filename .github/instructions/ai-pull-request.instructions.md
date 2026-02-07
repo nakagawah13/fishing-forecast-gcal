@@ -748,6 +748,11 @@ find experiments/ mlruns/ -name "*.json" -o -name "*.yaml" -mtime -7
    - 生成したPR本文が全てのフォーマット規則に準拠しているか確認
    - 違反が検出された場合は修正して再検証（最大3回）
 
+6. **一時ファイルへの書き出し**:
+   - 生成したPR本文を一時ファイル（例: `.pr_body.md`）に書き出す
+   - **重要**: バッククォート（`` ` ``）を含む本文を直接 `--body` 引数で渡すと、シェルがコマンド置換として解釈してエラーになる
+   - ファイル経由で渡すことで、特殊文字のエスケープ問題を回避
+
 ### ステップ8: 自己検証チェック
 
 生成直後に以下を確認し、違反があれば**該当箇所を修正**してください：
@@ -778,17 +783,52 @@ find experiments/ mlruns/ -name "*.json" -o -name "*.yaml" -mtime -7
 
 ### ステップ9: PR作成/更新
 
+**一時ファイルの作成**:
 ```bash
-# 8-1. GitHub CLI でPR作成
+# PR本文を一時ファイルに書き出す
+cat > .pr_body.md << 'EOF'
+## 変更概要
+
+- `TideTypeClassifier` クラスを新規実装
+- スキーマ定義ファイル (`config/schema.json`) を追加
+...
+EOF
+
+# または、create_fileツールで作成
+# create_file(filePath=".pr_body.md", content="...")
+```
+
+**重要な注意事項**:
+- ファイル名は `.pr_body.md` (ドットで始まる) を推奨（gitignoreされる）
+- Here-Doc (`<< 'EOF'`) を使う場合は、シングルクォートで囲んで変数展開を無効化
+- バッククォート（`` ` ``）、ドル記号（`$`）、バックスラッシュ（`\`）をそのまま書ける
+
+**PRの作成**:
+```bash
+# 9-1. GitHub CLI でPR作成
 gh pr create \
   --title "<type>: <description>" \
-  --body-file pr_body.md \
+  --body-file .pr_body.md \
   --base main \
   --head $(git branch --show-current)
 
-# 8-2. 既存PRの更新
+# 9-2. 既存PRの更新
 gh pr edit <PR番号> \
-  --body-file pr_body.md
+  --body-file .pr_body.md
+
+# 9-3. クリーンアップ（オプション）
+rm .pr_body.md
+```
+
+**非推奨: 直接 `--body` に渡す方法**:
+```bash
+# ❌ 非推奨: バッククォートを含む場合にエラーになる
+gh pr create --title "..." --body "本文に `code` を含む"
+# エラー例: code: command not found
+
+# ✅ 推奨: ファイル経由で渡す
+echo "本文に \`code\` を含む" > .pr_body.md
+gh pr create --title "..." --body-file .pr_body.md
 ```
 
 **オプション**:

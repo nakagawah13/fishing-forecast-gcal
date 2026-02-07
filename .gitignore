@@ -219,3 +219,6 @@ __marimo__/
 # OS
 .DS_Store
 Thumbs.db
+
+# PR temporary files
+.pr_body.md
