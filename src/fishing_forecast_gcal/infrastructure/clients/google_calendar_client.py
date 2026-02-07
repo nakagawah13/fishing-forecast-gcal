@@ -50,20 +50,19 @@ class GoogleCalendarClient:
                 # Perform new OAuth flow
                 print("Starting OAuth authentication flow...")
                 print(f"Using credentials from: {self.credentials_path}")
-                
+
                 if not self.credentials_path.exists():
                     raise FileNotFoundError(
                         f"Credentials file not found: {self.credentials_path}\n"
                         "Please download OAuth2 credentials from Google Cloud Console."
                     )
-                
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(self.credentials_path), SCOPES
-                )
-                self._creds = flow.run_local_server(port=0)
+
+                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_path), SCOPES)
+                self._creds = flow.run_local_server(port=0)  # type: ignore[assignment]
                 print("Authentication successful!")
 
             # Save token for future use
+            assert self._creds is not None
             self.token_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.token_path, "w") as token_file:
                 token_file.write(self._creds.to_json())
@@ -82,9 +81,7 @@ class GoogleCalendarClient:
             RuntimeError: If authentication has not been performed
         """
         if self._service is None:
-            raise RuntimeError(
-                "Calendar service not initialized. Call authenticate() first."
-            )
+            raise RuntimeError("Calendar service not initialized. Call authenticate() first.")
         return self._service
 
     def test_connection(self) -> bool:
@@ -97,12 +94,12 @@ class GoogleCalendarClient:
             service = self.get_service()
             result = service.calendarList().list(maxResults=10).execute()
             calendars = result.get("items", [])
-            
+
             print("\n=== Available Calendars ===")
             for calendar in calendars:
                 print(f"- {calendar['summary']}: {calendar['id']}")
             print(f"\nTotal: {len(calendars)} calendar(s) found")
-            
+
             return True
         except Exception as e:
             print(f"Error testing connection: {e}")

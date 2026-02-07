@@ -25,7 +25,7 @@ def main() -> None:
             print("❌ Error: config/config.yaml not found")
             print("Please create config/config.yaml from config/config.yaml.template")
             sys.exit(1)
-        
+
         config = load_config(str(config_path))
         settings = config["settings"]
         print(f"✅ Configuration loaded from: {config_path}")
@@ -37,7 +37,7 @@ def main() -> None:
         print("[2/3] Authenticating with Google Calendar API...")
         credentials_path = settings["google_credentials_path"]
         token_path = settings["google_token_path"]
-        
+
         client = GoogleCalendarClient(credentials_path, token_path)
         client.authenticate()
         print("✅ Authentication successful")
@@ -50,7 +50,7 @@ def main() -> None:
         else:
             print("❌ Connection test failed")
             sys.exit(1)
-        
+
         print()
         print("=" * 70)
         print("🎉 Setup completed successfully!")
@@ -62,13 +62,14 @@ def main() -> None:
         print("3. Implement tide calculation service (T-003)")
         print()
         print("For more information, see docs/implementation_plan.md")
-        
+
     except FileNotFoundError as e:
         print(f"❌ Error: {e}")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
