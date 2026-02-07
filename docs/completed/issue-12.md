@@ -1,8 +1,9 @@
 # Issue #12: T-001 ドメインモデル定義
 
 ## ステータス
-**In Progress**  
-開始日: 2026-02-08
+**Completed**  
+開始日: 2026-02-08  
+完了日: 2026-02-08
 
 ---
 
@@ -237,6 +238,67 @@ class TideType(Enum):
 - `TideEvent` の `height_cm` の上限値（500cm）は妥当か？（実際の潮位範囲を確認）
 - `FishingCondition` の `warning_level` の判定基準（風速10m/s）は妥当か？
 - `CalendarEvent` の `description` のセクション形式検証は必須か、それとも推奨レベルか？
+
+---
+
+## 実装結果・変更点
+
+### 実装完了日
+2026-02-08
+
+### 作成したファイル
+1. **ドメインモデル**:
+   - `src/fishing_forecast_gcal/domain/models/tide.py` - `TideType`, `TideEvent`, `Tide` クラス
+   - `src/fishing_forecast_gcal/domain/models/fishing_condition.py` - `FishingCondition` クラス
+   - `src/fishing_forecast_gcal/domain/models/location.py` - `Location` クラス
+   - `src/fishing_forecast_gcal/domain/models/calendar_event.py` - `CalendarEvent` クラス
+   - `src/fishing_forecast_gcal/domain/models/__init__.py` - 各モデルのエクスポート
+
+2. **テストファイル**:
+   - `tests/unit/domain/models/test_tide.py` - 24テスト（TideType, TideEvent, Tide）
+   - `tests/unit/domain/models/test_fishing_condition.py` - 11テスト（FishingCondition）
+   - `tests/unit/domain/models/test_location.py` - 13テスト（Location）
+   - `tests/unit/domain/models/test_calendar_event.py` - 16テスト（CalendarEvent）
+
+3. **設定ファイル**:
+   - `pyrightconfig.json` - 厳密な型チェック設定（src/のみ対象）
+   - `pyproject.toml` - pyright設定を strict モードに更新
+
+### 品質メトリクス
+- **テスト**: 全56テストがパス（100%成功率）
+- **カバレッジ**: ドメインモデル 100%
+- **Lint**: ruff check クリア（0エラー）
+- **型チェック**: pyright クリア（0エラー）
+
+### 設計決定事項
+1. **`TideEvent.height_cm` の上限値**: 500cm を採用（日本の潮位範囲を考慮）
+2. **`FishingCondition.warning_level` の判定基準**:
+   - safe: 7m/s未満
+   - caution: 7m/s以上10m/s未満
+   - danger: 10m/s以上
+3. **`CalendarEvent.description` のセクション形式**: 推奨レベル（`has_valid_sections()` で確認可能だが必須ではない）
+4. **不変性**: 全モデルで `frozen=True` を採用し、変更時は新しいインスタンスを生成
+
+### 主要な実装ポイント
+1. **バリデーション**:
+   - 全モデルで `__post_init__` による厳密なバリデーション
+   - timezone aware の強制（`TideEvent.time`, `FishingCondition.forecast_time`）
+   - 範囲チェック（緯度・経度、潮位、風速、気圧）
+
+2. **セクション操作**:
+   - `CalendarEvent.extract_section()`: 正規表現によるセクション抽出
+   - `CalendarEvent.update_section()`: イミュータブルな更新（新インスタンス生成）
+
+3. **型安全性**:
+   - Python 3.13 の Union types (`|`) を活用
+   - `Literal` 型による制約（`event_type: Literal["high", "low"]`）
+
+### コミット履歴
+1. `83a663f` - feat(domain): implement core domain models
+2. `5db905e` - test(domain): add comprehensive tests for domain models
+
+### 次のタスクへの準備
+T-002（リポジトリインターフェース定義）に必要なドメインモデルがすべて揃いました。
 
 ---
 
