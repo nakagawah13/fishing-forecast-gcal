@@ -1,10 +1,7 @@
 """TideCalculationService のユニットテスト"""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
-
-from fishing_forecast_gcal.domain.models.tide import TideEvent
 from fishing_forecast_gcal.domain.services.tide_calculation_service import (
     TideCalculationService,
 )
@@ -16,7 +13,7 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_from_typical_data(self) -> None:
         """典型的な潮汐データから満干潮を抽出できること"""
         # Arrange: 典型的な1日の潮汐データ（1時間ごと）
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
         data = [
             (base_time.replace(hour=0), 100.0),  # 干潮に向かう
             (base_time.replace(hour=1), 80.0),
@@ -84,7 +81,7 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_with_insufficient_data_one_point(self) -> None:
         """データが1点のみの場合、空リストを返すこと"""
         # Arrange
-        data = [(datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc), 100.0)]
+        data = [(datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC), 100.0)]
         service = TideCalculationService()
 
         # Act
@@ -96,7 +93,7 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_with_insufficient_data_two_points(self) -> None:
         """データが2点のみの場合、空リストを返すこと"""
         # Arrange
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
         data = [
             (base_time, 100.0),
             (base_time.replace(hour=1), 120.0),
@@ -112,11 +109,8 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_with_flat_data(self) -> None:
         """全て同じ値のフラットなデータの場合、空リストを返すこと"""
         # Arrange
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
-        data = [
-            (base_time.replace(hour=i), 100.0)
-            for i in range(24)
-        ]
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
+        data = [(base_time.replace(hour=i), 100.0) for i in range(24)]
         service = TideCalculationService()
 
         # Act
@@ -128,7 +122,7 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_with_out_of_range_values(self) -> None:
         """範囲外の潮位を含む場合、その極値をスキップすること"""
         # Arrange
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
         data = [
             (base_time.replace(hour=0), 100.0),
             (base_time.replace(hour=1), 80.0),
@@ -158,7 +152,7 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_preserves_order(self) -> None:
         """抽出結果が時系列順に並んでいること"""
         # Arrange
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
         data = [
             (base_time.replace(hour=0), 100.0),
             (base_time.replace(hour=1), 60.0),  # 干潮
@@ -181,11 +175,11 @@ class TestTideCalculationService:
     def test_extract_high_low_tides_with_multiple_peaks_in_sequence(self) -> None:
         """極値が連続する場合でも正しく検出できること"""
         # Arrange: ピークが連続するケース
-        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base_time = datetime(2026, 2, 8, 0, 0, 0, tzinfo=UTC)
         data = [
             (base_time.replace(hour=0), 100.0),
             (base_time.replace(hour=1), 120.0),  # 極大（満潮）
-            (base_time.replace(hour=2), 100.0),
+            (base_time.replace(hour=2), 100.0),  # 極小（干潮）
             (base_time.replace(hour=3), 110.0),  # 極大（満潮）
             (base_time.replace(hour=4), 100.0),
             (base_time.replace(hour=5), 80.0),
@@ -197,8 +191,13 @@ class TestTideCalculationService:
         # Act
         result = service.extract_high_low_tides(data)
 
-        # Assert: 全ての極値が検出されること
-        assert len(result) == 3
+        # Assert: 全ての極値が検出されること（満潮2回、干潮2回）
+        assert len(result) == 4
+        assert result[0].time == base_time.replace(hour=1)
         assert result[0].event_type == "high"
-        assert result[1].event_type == "high"
-        assert result[2].event_type == "low"
+        assert result[1].time == base_time.replace(hour=2)
+        assert result[1].event_type == "low"
+        assert result[2].time == base_time.replace(hour=3)
+        assert result[2].event_type == "high"
+        assert result[3].time == base_time.replace(hour=6)
+        assert result[3].event_type == "low"

@@ -22,9 +22,7 @@ class TideCalculationService:
     MIN_HEIGHT_CM = 0.0
     MAX_HEIGHT_CM = 500.0
 
-    def extract_high_low_tides(
-        self, data: list[tuple[datetime, float]]
-    ) -> list[TideEvent]:
+    def extract_high_low_tides(self, data: list[tuple[datetime, float]]) -> list[TideEvent]:
         """時系列潮位データから満干潮を抽出
 
         Args:
@@ -40,18 +38,16 @@ class TideCalculationService:
         """
         # データ不足チェック
         if len(data) < 3:
-            logger.debug(
-                f"Insufficient data points: {len(data)} (minimum 3 required)"
-            )
+            logger.debug(f"Insufficient data points: {len(data)} (minimum 3 required)")
             return []
 
         events: list[TideEvent] = []
 
         # 各点について前後の点と比較し、極値を検出
         for i in range(1, len(data) - 1):
-            prev_time, prev_height = data[i - 1]
+            _prev_time, prev_height = data[i - 1]
             curr_time, curr_height = data[i]
-            next_time, next_height = data[i + 1]
+            _next_time, next_height = data[i + 1]
 
             # 極大値（満潮）の検出
             if prev_height < curr_height > next_height:
