@@ -85,6 +85,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     sync_tide_parser.add_argument(
+        "--days",
+        "-d",
+        type=int,
+        help="Number of days to sync from start date (alternative to --end-date)",
+    )
+
+    sync_tide_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be done without actually creating events",
@@ -167,6 +174,9 @@ def main() -> None:
 
         if args.end_date:
             end_date = parse_date(args.end_date)
+        elif args.days:
+            # --days オプションが指定されている場合
+            end_date = start_date + timedelta(days=args.days - 1)
         else:
             # 設定ファイルの tide_register_months に基づいて計算
             months = settings.tide_register_months
