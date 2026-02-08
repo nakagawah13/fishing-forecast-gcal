@@ -54,13 +54,6 @@ class TestICalendarRepositoryMock:
                 return self.events.get(event_id)
 
             @override
-            def generate_event_id_for_location_date(
-                self, location_id: str, target_date: date
-            ) -> str:
-                """イベントIDを生成"""
-                return f"{location_id}_{target_date.isoformat()}"
-
-            @override
             def upsert_event(self, event: CalendarEvent) -> None:
                 """イベントを作成または更新"""
                 self.events[event.event_id] = event
@@ -147,12 +140,6 @@ class TestICalendarRepositoryMock:
             @override
             def get_event(self, event_id: str) -> CalendarEvent | None:
                 return self.events.get(event_id)
-
-            @override
-            def generate_event_id_for_location_date(
-                self, location_id: str, target_date: date
-            ) -> str:
-                return f"{location_id}_{target_date.isoformat()}"
 
             @override
             def upsert_event(self, event: CalendarEvent) -> None:

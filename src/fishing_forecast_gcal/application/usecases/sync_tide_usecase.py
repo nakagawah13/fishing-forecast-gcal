@@ -62,25 +62,25 @@ class SyncTideUseCase:
             tide = self._tide_repo.get_tide_data(location, target_date)
             logger.debug(f"Tide data retrieved: {tide.tide_type.value}")
 
-            # 2. イベント本文生成
+            # 2. イベントID生成（ドメインロジック）
+            event_id = CalendarEvent.generate_event_id(location.id, target_date)
+
+            # 3. イベント本文生成
             tide_section = self._format_tide_section(tide)
 
-            # 3. 既存イベント取得
-            event_id = self._calendar_repo.generate_event_id_for_location_date(
-                location.id, target_date
-            )
+            # 4. 既存イベント取得
             existing_event = self._calendar_repo.get_event(event_id)
 
-            # 4. 既存の[NOTES]を保持
+            # 5. 既存の[NOTES]を保持
             existing_notes = None
             if existing_event:
                 existing_notes = existing_event.extract_section("NOTES")
                 logger.debug("Existing event found, preserving [NOTES] section")
 
-            # 5. イベント本文を構築
+            # 6. イベント本文を構築
             description = self._build_description(tide_section, existing_notes)
 
-            # 6. CalendarEvent作成
+            # 7. CalendarEvent作成
             event = CalendarEvent(
                 event_id=event_id,
                 title=f"潮汐 {location.name} ({tide.tide_type.value})",
@@ -89,7 +89,7 @@ class SyncTideUseCase:
                 location_id=location.id,
             )
 
-            # 7. カレンダーに登録
+            # 8. カレンダーに登録
             self._calendar_repo.upsert_event(event)
             logger.info(f"Event upserted successfully: {event_id}")
 
@@ -97,7 +97,8 @@ class SyncTideUseCase:
             logger.error(f"Failed to sync tide: {e}")
             raise RuntimeError(f"Failed to sync tide for {location.name} on {target_date}") from e
 
-    def _format_tide_section(self, tide: Tide) -> str:
+    @staticmethod
+    def _format_tide_section(tide: Tide) -> str:
         """[TIDE]セクションの生成
 
         Args:
@@ -133,7 +134,8 @@ class SyncTideUseCase:
 
         return "\n".join(lines)
 
-    def _build_description(self, tide_section: str, existing_notes: str | None) -> str:
+    @staticmethod
+    def _build_description(tide_section: str, existing_notes: str | None) -> str:
         """イベント本文を構築
 
         Args:

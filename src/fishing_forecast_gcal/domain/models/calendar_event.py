@@ -4,6 +4,9 @@
 - CalendarEvent: イベントID、タイトル、本文、日付などの情報
 """
 
+from __future__ import annotations
+
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import date
@@ -48,6 +51,24 @@ class CalendarEvent:
     description: str
     date: date
     location_id: str
+
+    @staticmethod
+    def generate_event_id(location_id: str, target_date: date) -> str:
+        """location_id と target_date からイベントIDを生成
+
+        同一の location_id + target_date の組み合わせからは常に同じIDが生成されます（冪等性）。
+        Google Calendar API の制約（5-1024文字、英小文字と数字のみ）を満たす
+        MD5ハッシュベースの安定IDを生成します。
+
+        Args:
+            location_id: 地点の不変ID
+            target_date: 対象日
+
+        Returns:
+            str: イベントID（MD5ハッシュ、32文字の16進数文字列）
+        """
+        source = f"{location_id}_{target_date.isoformat()}"
+        return hashlib.md5(source.encode("utf-8")).hexdigest()
 
     def __post_init__(self) -> None:
         """インスタンス化後のバリデーション"""

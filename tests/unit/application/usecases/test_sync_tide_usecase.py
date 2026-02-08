@@ -66,7 +66,6 @@ class TestSyncTideUseCase:
     def mock_calendar_repo(self) -> Mock:
         """Mockのカレンダーリポジトリ"""
         repo = Mock()
-        repo.generate_event_id_for_location_date.return_value = "test_event_id_123"
         repo.get_event.return_value = None  # 既存イベントなし
         return repo
 
@@ -90,13 +89,9 @@ class TestSyncTideUseCase:
         # 検証: 潮汐データが取得されたか
         mock_tide_repo.get_tide_data.assert_called_once_with(location, target_date)
 
-        # 検証: イベントIDが生成されたか
-        mock_calendar_repo.generate_event_id_for_location_date.assert_called_once_with(
-            location.id, target_date
-        )
-
-        # 検証: 既存イベントが確認されたか
-        mock_calendar_repo.get_event.assert_called_once_with("test_event_id_123")
+        # 検証: 既存イベントが確認されたか（ドメインロジックでevent_id生成）
+        expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
+        mock_calendar_repo.get_event.assert_called_once_with(expected_event_id)
 
         # 検証: upsert_event が呼ばれたか
         mock_calendar_repo.upsert_event.assert_called_once()
@@ -105,7 +100,7 @@ class TestSyncTideUseCase:
         call_args = mock_calendar_repo.upsert_event.call_args
         event: CalendarEvent = call_args[0][0]
 
-        assert event.event_id == "test_event_id_123"
+        assert event.event_id == expected_event_id
         assert event.title == "潮汐 東京湾 (大潮)"
         assert event.date == target_date
         assert event.location_id == location.id
@@ -127,8 +122,9 @@ class TestSyncTideUseCase:
     ) -> None:
         """既存イベントが更新されることを確認"""
         # 既存イベントを設定
+        expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
         existing_event = CalendarEvent(
-            event_id="test_event_id_123",
+            event_id=expected_event_id,
             title="潮汐 東京湾 (中潮)",
             description="[TIDE]\n古いデータ\n\n[FORECAST]\n古い予報\n\n[NOTES]\nユーザーメモ",
             date=target_date,
@@ -158,8 +154,9 @@ class TestSyncTideUseCase:
     ) -> None:
         """[NOTES]セクションが保持されることを確認"""
         # 既存イベントに[NOTES]セクションを含める
+        expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
         existing_event = CalendarEvent(
-            event_id="test_event_id_123",
+            event_id=expected_event_id,
             title="潮汐 東京湾 (大潮)",
             description="[TIDE]\n- 満潮: 06:00\n\n[FORECAST]\n風速: 5m/s\n\n[NOTES]\n手動で追加したメモ",
             date=target_date,
