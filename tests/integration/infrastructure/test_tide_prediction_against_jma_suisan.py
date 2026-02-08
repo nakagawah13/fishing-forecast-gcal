@@ -28,9 +28,7 @@ DEFAULT_TOLERANCE_MINUTES = 10
 BOUNDARY_LOW_TIME = time(23, 55)
 FIXTURE_STATION_ID = "TK"
 FIXTURE_TARGET_DATE = date(2024, 11, 3)
-FIXTURE_FILE = (
-    Path(__file__).resolve().parents[1] / "fixtures" / "jma_suisan_TK_2024_11_03.txt"
-)
+FIXTURE_FILE = Path(__file__).resolve().parents[1] / "fixtures" / "jma_suisan_TK_2024_11_03.txt"
 
 
 @pytest.mark.integration
