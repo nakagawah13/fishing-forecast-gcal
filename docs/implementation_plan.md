@@ -295,8 +295,10 @@
 
 ### 1.3 Application Layer（ユースケース）
 
-#### T-010: SyncTideUseCase 実装
+#### T-010: SyncTideUseCase 実装 ✅
 **責務**: 天文潮の同期処理をオーケストレーション
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `application/usecases/sync_tide_usecase.py`
@@ -305,12 +307,24 @@
   - 潮回り判定
   - 時合い帯計算
   - カレンダーイベント作成/更新
+  - [NOTES]セクション保持機能
 
 **テスト要件**:
-- Mockリポジトリで単体テスト
+- Mockリポジトリで単体テスト ✅
 - エンドツーエンドテスト（実リポジトリ使用）
 
+**実績**:
+- 7件の単体テストすべてパス
+- カバレッジ100%（SyncTideUseCase）
+- `ICalendarRepository` に `generate_event_id_for_location_date` メソッド追加
+- 詳細: [docs/completed/issue-21.md](completed/issue-21.md)
+
 **依存**: T-001, T-002, T-003, T-004, T-005, T-007, T-009
+
+**実装完了**: 2026-02-08
+- Issue #21 にて実装
+- 単体テスト 7件、カバレッジ100%
+- ドキュメント: [docs/completed/issue-21.md](./completed/issue-21.md)
 
 ---
 

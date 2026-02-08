@@ -39,7 +39,7 @@
 | T-007 | 1.2 | TideDataRepository 実装 | [implementation_plan.md](implementation_plan.md#t-007-tidedatarepository-実装) | [#18](https://github.com/nakagawah13/fishing-forecast-gcal/issues/18) | ✅ Completed |
 | T-008 | 1.2 | Google Calendar API クライアント | [implementation_plan.md](implementation_plan.md#t-008-google-calendar-api-クライアント) | [#19](https://github.com/nakagawah13/fishing-forecast-gcal/issues/19) | ✅ Completed |
 | T-009 | 1.2 | CalendarRepository 実装 | [implementation_plan.md](implementation_plan.md#t-009-calendarrepository-実装) | [#20](https://github.com/nakagawah13/fishing-forecast-gcal/issues/20) | ✅ Completed |
-| T-010 | 1.3 | SyncTideUseCase 実装 | [implementation_plan.md](implementation_plan.md#t-010-synctideusecase-実装) | [#21](https://github.com/nakagawah13/fishing-forecast-gcal/issues/21) | Not Started |
+| T-010 | 1.3 | SyncTideUseCase 実装 | [implementation_plan.md](implementation_plan.md#t-010-synctideusecase-実装) | [#21](https://github.com/nakagawah13/fishing-forecast-gcal/issues/21) | ✅ Completed |
 | T-011 | 1.4 | 設定ファイルローダー | [implementation_plan.md](implementation_plan.md#t-011-設定ファイルローダー) | [#22](https://github.com/nakagawah13/fishing-forecast-gcal/issues/22) | Not Started |
 | T-012 | 1.4 | CLI エントリーポイント | [implementation_plan.md](implementation_plan.md#t-012-cliエントリーポイント) | [#23](https://github.com/nakagawah13/fishing-forecast-gcal/issues/23) | Not Started |
 | T-013 | 1.5 | E2E テスト | [implementation_plan.md](implementation_plan.md#t-013-e2eテスト) | [#24](https://github.com/nakagawah13/fishing-forecast-gcal/issues/24) | Not Started |
