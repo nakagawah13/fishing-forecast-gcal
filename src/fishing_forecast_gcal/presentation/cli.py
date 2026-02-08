@@ -11,7 +11,6 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fishing_forecast_gcal.application.usecases.sync_tide_usecase import SyncTideUseCase
-from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -135,9 +134,7 @@ def main() -> None:
 
         if not config_path.exists():
             logger.error("Configuration file not found: %s", config_path)
-            logger.error(
-                "Please create config/config.yaml from config/config.yaml.template"
-            )
+            logger.error("Please create config/config.yaml from config/config.yaml.template")
             sys.exit(1)
 
         config = load_config(str(config_path))
@@ -149,9 +146,7 @@ def main() -> None:
         # 対象地点の決定
         if args.location_id:
             # 指定された地点IDを検証
-            target_locations = [
-                loc for loc in config.locations if loc.id == args.location_id
-            ]
+            target_locations = [loc for loc in config.locations if loc.id == args.location_id]
             if not target_locations:
                 logger.error("Location ID not found in config: %s", args.location_id)
                 logger.error(
@@ -168,9 +163,7 @@ def main() -> None:
         )
 
         # 対象期間の決定
-        start_date = (
-            parse_date(args.start_date) if args.start_date else date.today()
-        )
+        start_date = parse_date(args.start_date) if args.start_date else date.today()
 
         if args.end_date:
             end_date = parse_date(args.end_date)
@@ -201,7 +194,8 @@ def main() -> None:
         logger.info("Google Calendar authentication successful")
 
         # リポジトリ
-        tide_adapter = TideCalculationAdapter()
+        harmonics_dir = Path("config/harmonics")
+        tide_adapter = TideCalculationAdapter(harmonics_dir)
         tide_repo = TideDataRepository(tide_adapter)
         calendar_repo = CalendarRepository(
             client=calendar_client,

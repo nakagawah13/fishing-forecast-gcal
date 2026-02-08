@@ -1,8 +1,7 @@
 """CLI エントリーポイントの単体テスト"""
 
-import argparse
 from datetime import date
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
