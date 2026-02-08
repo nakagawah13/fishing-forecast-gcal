@@ -120,7 +120,7 @@ class CalendarEvent:
             return match.group(1).strip()
         return None
 
-    def update_section(self, section_name: str, new_content: str) -> "CalendarEvent":
+    def update_section(self, section_name: str, new_content: str) -> CalendarEvent:
         """指定されたセクションの内容を更新した新しいインスタンスを返す
 
         Args:
