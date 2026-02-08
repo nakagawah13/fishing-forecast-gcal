@@ -1,66 +1,191 @@
 # Fishing Forecast GCal
 
-釣行計画のために、潮汐・潮回り・満干潮時刻・タイドグラフ画像、さらに風速などの予報情報を Google カレンダーへ埋め込むツールを目指します。
+**最終更新**: 2026-02-08
 
-## 目的
-- 潮汐（天文潮）に基づく満潮・干潮の時刻と潮回りをカレンダーに登録する
-- タイドグラフを画像として可視化し、カレンダーに埋め込む
-- 風速など変化する予報情報を自動更新できる設計にする
+釣行計画のために、潮汐・潮回り・満干潮時刻を Google カレンダーへ自動登録するツールです。
 
-## 状況
-- まずは MVP（天文潮ベースの予定作成）を優先
-- 風速などの予報値は直前更新フェーズで扱う
-- MVP は終日イベント運用（詳細は `docs/requirements.md` を参照）
+## 🎯 MVP達成（Phase 1完了）
 
-## 設定ファイル
-個人の地点情報を含むため、実体ファイルは Git 管理しない。
+**Phase 1（天文潮ベースのMVP）** が完了しました。以下の機能が実装済みです:
 
-手順:
-1. `config/config.yaml.template` を `config/config.yaml` にコピー
-2. 地点情報（`locations[].id` を含む）とカレンダー ID を設定
-3. OAuth のクレデンシャル/トークンパスを設定し、認証情報を配置
-4. `forecast_window_days` を確認（予報更新範囲）
+### 実装済み機能
 
-## クイックスタート（MVP・案）
-MVPは CLI アプリとして動かす前提。
+- ✅ **天文潮の計算**: UTideライブラリによる高精度な潮汐計算
+- ✅ **満潮・干潮の算出**: 日次での満潮・干潮時刻とピーク潮位の算出
+- ✅ **潮回り判定**: 大潮・中潮・小潮・長潮・若潮の自動判定
+- ✅ **時合い帯の特定**: 満潮±2時間の釣行好適時間帯の算出
+- ✅ **Google カレンダー連携**: 終日イベントとして自動登録
+- ✅ **CLI操作**: コマンドラインからの同期実行
+- ✅ **レイヤードアーキテクチャ**: 保守性・テスト容易性を重視した設計
 
-1. リポジトリを取得
-2. `uv sync` で依存関係をセットアップ
-3. `config/config.yaml.template` をコピーして `config/config.yaml` を作成
-4. `google_credentials_path` に OAuth クレデンシャルを配置
-5. 初回認証で `config/token.json` を生成
-6. スケジューラーを起動して定期実行
+### イベントフォーマット
 
-注記:
-- 初回認証・スケジューラー起動の CLI コマンドは実装計画で確定予定
-- OAuth の同意画面が Testing の場合、リフレッシュトークン期限に注意
+カレンダーに登録されるイベントは以下の形式です:
 
-## 配布方法（MVP）
-- 推奨: ソースコード配布 + `uv` による環境構築
-- 次のステップ: Docker 化（常時稼働環境向け）
+```
+タイトル: 潮汐 {location_name} ({tide_type})
+種別: 終日イベント
 
-## 開発環境（uv 前提）
-uv を使った Python 開発を前提とする。
+本文:
+[TIDE]
+- 満潮: 06:12 (162cm)
+- 干潮: 12:34 (58cm)
+- 時合い: 04:12-08:12
 
-例:
-1. `uv --version` でインストール確認
-2. `uv venv` で仮想環境を作成
-3. `source .venv/bin/activate` で有効化
-4. `uv.lock` がある場合は `uv sync --frozen`
-5. `requirements.txt` で管理する場合は `uv pip sync -r requirements.txt`
+[FORECAST]
+（Phase 2で実装予定）
 
-注意:
-- 依存関係は未確定のため、`requirements.txt` は今後追加予定
+[NOTES]
+（ユーザーメモ欄）
+```
 
-## ドキュメント
-- 全体像: [docs/architecture.md](docs/architecture.md)
-- 要件整理: [docs/requirements.md](docs/requirements.md)
-- データソース候補: [docs/data_sources.md](docs/data_sources.md)
-- 実装計画: [docs/implementation_plan.md](docs/implementation_plan.md)
-- Gemini 会話整理: [docs/conversation_gemini.md](docs/conversation_gemini.md)
-- ドキュメント一覧: [docs/document_index.md](docs/document_index.md)
+## 🚀 クイックスタート
 
-## 次のアクション（予定）
-- MVP 仕様の確定
-- 潮汐データ取得方法の決定
-- Google カレンダー連携の PoC
+### 1. 環境セットアップ
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/nakagawah13/fishing-forecast-gcal.git
+cd fishing-forecast-gcal
+
+# 依存関係をインストール（uvが必要）
+uv sync
+```
+
+### 2. Google Calendar API の設定
+
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成
+2. Google Calendar API を有効化
+3. OAuth 同意画面を設定（Testing モードでOK）
+4. デスクトップアプリ用のOAuthクライアントIDを作成
+5. `credentials.json` をダウンロードし `config/` に配置
+
+### 3. 調和定数の生成
+
+潮汐計算に必要な調和定数を生成します:
+
+```bash
+# 例: 東京（TK）の2025年データで調和定数を生成
+uv run python scripts/fetch_jma_tide_data.py --station TK --year 2025
+
+# 利用可能な地点一覧を表示
+uv run python scripts/fetch_jma_ide_data.py --list-stations
+```
+
+生成された調和定数ファイル（`.pkl`）は `config/harmonics/` に保存されます。
+
+### 4. 設定ファイルの作成
+
+```bash
+# テンプレートをコピー
+cp config/config.yaml.template config/config.yaml
+```
+
+`config/config.yaml` を編集し、以下を設定:
+
+```yaml
+google:
+  credentials_path: "config/credentials.json"
+  token_path: "config/token.json"
+  calendar_id: "your_calendar_id@group.calendar.google.com"
+
+locations:
+  - id: "tk"  # 調和定数ファイル名に対応
+    name: "東京"
+    lat: 35.6544
+    lon: 139.7447
+
+settings:
+  timezone: "Asia/Tokyo"
+  forecast_window_days: 7
+```
+
+### 5. 初回認証
+
+```bash
+# CLIを実行して初回認証
+uv run fishing-forecast-gcal sync-tide --days 30
+
+# ブラウザが開き、Googleアカウントでの認証を求められます
+# 認証完了後、config/token.json が生成されます
+```
+
+### 6. 同期実行
+
+```bash
+# 潮汐データを同期（30日分）
+uv run fishing-forecast-gcal sync-tide --days 30
+
+# 実行ログで同期状況を確認
+```
+
+## 📋 設定ファイル
+
+個人の地点情報とAPI認証情報を含むため、実体ファイルはGit管理から除外されています。
+
+**重要なファイル**:
+- `config/config.yaml`: メイン設定（テンプレートから作成）
+- `config/credentials.json`: Google OAuth クレデンシャル
+- `config/token.json`: 認証トークン（初回認証後に自動生成）
+- `config/harmonics/*.pkl`: 潮汐調和定数（スクリプトで生成）
+
+## 🏗️ アーキテクチャ
+
+本プロジェクトは **レイヤードアーキテクチャ** を採用しています:
+
+```
+Presentation Layer (CLI)
+    ↓
+Application Layer (UseCases)
+    ↓
+Domain Layer (Models, Services)
+    ↑
+Infrastructure Layer (Repositories, API Clients)
+```
+
+詳細は [docs/architecture.md](docs/architecture.md) を参照してください。
+
+## 🧪 テスト
+
+```bash
+# 全テストを実行
+uv run pytest
+
+# カバレッジ付きで実行
+uv run pytest --cov=src --cov-report=html
+
+# 型チェック
+uv run pyright
+
+# Lint
+uv run ruff check .
+```
+
+## 📚 ドキュメント
+
+- **アーキテクチャ**: [docs/architecture.md](docs/architecture.md)
+- **要件定義**: [docs/requirements.md](docs/requirements.md)
+- **実装計画**: [docs/implementation_plan.md](docs/implementation_plan.md)
+- **タスク一覧**: [docs/task_table.md](docs/task_table.md)
+- **データソース**: [docs/data_sources.md](docs/data_sources.md)
+- **ドキュメント索引**: [docs/document_index.md](docs/document_index.md)
+
+## 🔜 次のステップ（Phase 2: 予報更新）
+
+Phase 2では以下の機能を実装予定です:
+
+- 🌤️ **気象予報の取得**: 風速・風向・気圧などの予報データ
+- 🔄 **自動更新**: 3時間ごとの予報更新
+- 📅 **フォーマット統合**: `[FORECAST]` セクションへの予報データ反映
+- ⏰ **スケジューラー**: 定期実行の自動化
+
+詳細は [docs/implementation_plan.md](docs/implementation_plan.md) のPhase 2セクションを参照してください。
+
+## 📝 ライセンス
+
+[LICENSE](LICENSE) を参照してください。
+
+## 🤝 コントリビューション
+
+Issue や Pull Request を歓迎します。
+実装計画に沿った貢献をお願いします。
