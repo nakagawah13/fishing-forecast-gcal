@@ -55,8 +55,8 @@ class TestGoogleCalendarClient:
         ):
             mock_service = MagicMock()
             mock_build.return_value = mock_service
-            client._service = mock_service
-            client._creds = MagicMock()
+            client._service = mock_service  # pyright: ignore[reportPrivateUsage]
+            client._creds = MagicMock()  # pyright: ignore[reportPrivateUsage]
             return client
 
     # ========================================
@@ -82,7 +82,7 @@ class TestGoogleCalendarClient:
         }
 
         # Calendar API のモックを設定
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_service.events().insert().execute.return_value = mock_event
 
         # Act
@@ -111,7 +111,7 @@ class TestGoogleCalendarClient:
         event_id = "existing-event-id"
 
         mock_event = {"id": event_id, "summary": "Test Event"}
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_service.events().insert().execute.return_value = mock_event
 
         # Act - 2回作成
@@ -152,7 +152,7 @@ class TestGoogleCalendarClient:
             "description": "Test Description",
         }
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_service.events().get().execute.return_value = mock_event
 
         # Act
@@ -175,7 +175,7 @@ class TestGoogleCalendarClient:
         calendar_id = "test@calendar.com"
         event_id = "non-existent-id"
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         # 404エラーをシミュレート
         mock_response = Mock()
         mock_response.status = 404
@@ -215,7 +215,7 @@ class TestGoogleCalendarClient:
             "end": {"date": "2026-02-09"},
         }
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_service.events().get().execute.return_value = existing_event
         mock_service.events().patch().execute.return_value = updated_event
 
@@ -254,7 +254,7 @@ class TestGoogleCalendarClient:
             "description": "New Description",
         }
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_service.events().get().execute.return_value = existing_event
         mock_service.events().patch().execute.return_value = updated_event
 
@@ -274,7 +274,7 @@ class TestGoogleCalendarClient:
         calendar_id = "test@calendar.com"
         event_id = "non-existent-id"
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_response = Mock()
         mock_response.status = 404
         mock_service.events().get().execute.side_effect = HttpError(mock_response, b"Not Found")
@@ -305,7 +305,7 @@ class TestGoogleCalendarClient:
         calendar_id = "test@calendar.com"
         event_id = "test-event-id"
 
-        mock_service = authenticated_client._service
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
         mock_response = Mock()
         mock_response.status = 401
         mock_service.events().insert().execute.side_effect = HttpError(
