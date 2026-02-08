@@ -242,11 +242,11 @@ def _parse_fishing_conditions(fishing_conditions_dict: dict[str, Any]) -> Fishin
         prime_time_offset_hours_raw = merged["prime_time_offset_hours"]
         max_wind_speed_ms_raw = merged["max_wind_speed_ms"]
         preferred_tide_types_raw = merged["preferred_tide_types"]
-        
+
         # Type validation and conversion
         prime_time_offset_hours = int(prime_time_offset_hours_raw)
         max_wind_speed_ms = float(max_wind_speed_ms_raw)
-        
+
         if not isinstance(preferred_tide_types_raw, list):
             raise ValueError("preferred_tide_types must be a list")
         preferred_tide_types = [str(t) for t in preferred_tide_types_raw]
