@@ -77,6 +77,15 @@ class TideCalculationAdapter:
         (時刻, 潮位cm) のリストを返します。
         日付境界の極値検出を補助するため、前後に1区間ずつ補助点を追加します。
 
+        **潮位の基準面**:
+        - 返される潮位値は「観測基準面からの高さ」（cm単位）
+        - UTide は観測データの平均潮位（MSL: Mean Sea Level）を基準とする
+        - coef['mean'] に観測基準面からの平均潮位が保存されている
+        - 実際の潮位 = UTide 出力（平均からの偏差） + coef['mean']
+        - 気象庁の推算値（suisan）は DL（略最低低潮面）を基準とするため、
+          本ツールの出力とは約88cm（東京の場合）のオフセットが存在する
+        - 詳細: docs/data_sources.md の「潮位の基準面」セクションを参照
+
         Args:
             location (Location): Target location with id, lat, lon.
                                  (対象地点情報)
@@ -86,7 +95,9 @@ class TideCalculationAdapter:
         Returns:
             list[tuple[datetime, float]]: List of (timezone-aware datetime, height_cm)
                 tuples at minute intervals (multiple data points).
-                (時刻と潮位cmのタプルリスト、分単位のデータポイント)
+                Height is measured from the observation datum level.
+                (時刻と潮位cmのタプルリスト、分単位のデータポイント。
+                 潮位は観測基準面からの高さ)
 
         Raises:
             FileNotFoundError: If harmonic coefficient file for the location
@@ -251,11 +262,20 @@ def generate_harmonics(
     結果をpickleファイルとして保存します。
     このファイルはTideCalculationAdapterで読み込んで予測に使用します。
 
+    **調和定数の基準面**:
+    - UTide solve() は入力データの平均潮位（MSL: Mean Sea Level）を基準とする
+    - 生成される coef['mean'] は「観測基準面からの平均潮位」を表す
+    - 気象庁の観測データ（genbo）は「観測基準面からの高さ」で記録されている
+    - 観測基準面は地点ごとに異なり、T.P.（東京湾平均海面）からのオフセットで定義される
+      例: 東京（TK）の観測基準面は T.P. -188.40cm
+    - 予測時は coef['mean'] を加算することで、観測基準面からの潮位値を得る
+
     Args:
         observed_times: Array of observation timestamps.
                         (観測時刻の配列)
         observed_heights: Array of observed tide heights in cm.
-                          (観測潮位の配列、cm単位)
+                          Height is measured from the observation datum level.
+                          (観測潮位の配列、cm単位、観測基準面からの高さ)
         latitude (float): Latitude of the observation station.
                           (観測地点の緯度)
         output_path (Path): Path to save the pickle file.
