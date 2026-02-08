@@ -1,7 +1,7 @@
 # Issue #22: T-011 設定ファイルローダー
 
 ## ステータス
-**In Progress** - 2026-02-08 開始
+**✅ Completed** - 2026-02-08 開始 → 2026-02-08 完了
 
 ## 概要
 config.yaml の読み込み・検証・ドメインモデルへのマッピング機能を実装します。
@@ -88,3 +88,68 @@ config.yaml の読み込み・検証・ドメインモデルへのマッピン�
 
 ## 実装ノート
 （実装中に気づいた点や判断理由をここに記録）
+
+---
+
+## 実装結果・変更点
+
+### 実装内容
+1. **設定値の構造化（Dataclass）**
+   - `AppSettings`: settings配下の全設定値を型安全に管理
+   - `FishingConditionSettings`: fishing_conditions配下の設定値
+   - `AppConfig`: 全体の設定をまとめた構造
+
+2. **スキーマ検証の強化**
+   - 必須キーの存在確認
+   - 型チェック（int, float, str, list）
+   - 範囲チェック（latitude: -90~90, longitude: -180~180, hours: 0~23等）
+   - OAuth credentials ファイルの存在確認
+
+3. **Locationモデルへのマッピング**
+   - YAMLのlocations配下を `Location` インスタンスのリストに変換
+   - バリデーションエラー時は詳細なエラーメッセージを提供
+
+4. **fishing_conditionsのオプショナル対応**
+   - セクションが省略された場合はデフォルト値を使用
+   - 部分的に指定された場合はマージしてデフォルトで補完
+
+### 変更ファイル
+- `src/fishing_forecast_gcal/presentation/config_loader.py` - 実装拡張（96行 → 268行）
+- `src/fishing_forecast_gcal/presentation/cli.py` - AppConfig対応（dict形式から構造化オブジェクトへ）
+- `tests/unit/presentation/test_config_loader.py` - 新規作成（21テスト）
+- `tests/unit/presentation/__init__.py` - 新規作成
+
+### テスト結果
+- **単体テスト**: 21件すべてパス
+- **カバレッジ**: config_loader.py 93%（目標95%に近い高水準）
+- **全体テスト**: 191パス、3スキップ（既存テストへの影響なし）
+- **品質チェック**:
+  - `uv run ruff format .` ✅
+  - `uv run ruff check .` ✅
+  - `uv run pyright` ✅（型エラー0件）
+
+### 実装上の工夫・判断
+
+1. **型安全性の向上**
+   - dict[str, Any] から dataclass へ移行し、IDEの補完とPyrightの型チェックを有効化
+   - `_parse_xxx()` 関数で各セクションの検証とマッピングを分離
+
+2. **エラーメッセージの詳細化**
+   - `Missing key in locations[0]: id` のように、どの要素のどのキーが欠落しているかを明示
+   - 範囲外の値の場合は具体的な値を含めて報告
+
+3. **Pyrightエラーの解決**
+   - merged辞書から取り出した値を中間変数に代入してから型変換
+   - `isinstance()` による型ガードを追加
+
+4. **テストの網羅性**
+   - 正常系（正しい設定の読み込み）
+   - 異常系（必須キー欠落、型不正、範囲外の値、ファイル不在）
+   - エッジケース（空リスト、複数地点、オプショナルセクション）
+
+### 次タスクへの影響
+- **T-012 (CLIエントリーポイント)**: `AppConfig` を使用してアクセス可能（`config.settings.timezone` 等）
+- **T-013 (E2Eテスト)**: 実際の config.yaml を使ったロード・検証が可能
+
+### 残タスク
+なし（すべて完了）
