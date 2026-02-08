@@ -107,9 +107,11 @@ class TestSyncTideUseCase:
         event: CalendarEvent = call_args[0][0]
 
         assert event.event_id == expected_event_id
-        assert event.title == "潮汐 東京湾 (大潮)"
+        assert event.title == "🔴東京湾 (大潮)"  # 絵文字付き新形式
         assert event.date == target_date
         assert event.location_id == location.id
+        # 絵文字凡例が含まれることを確認
+        assert "🔴大潮 🟠中潮 🔵小潮 ⚪長潮 🟢若潮" in event.description
         assert "[TIDE]" in event.description
         assert "[FORECAST]" in event.description
         assert "[NOTES]" in event.description
@@ -131,7 +133,7 @@ class TestSyncTideUseCase:
         expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
         existing_event = CalendarEvent(
             event_id=expected_event_id,
-            title="潮汐 東京湾 (中潮)",
+            title="🟠東京湾 (中潮)",  # 既存は中潮
             description="[TIDE]\n古いデータ\n\n[FORECAST]\n古い予報\n\n[NOTES]\nユーザーメモ",
             date=target_date,
             location_id=location.id,
@@ -163,7 +165,7 @@ class TestSyncTideUseCase:
         expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
         existing_event = CalendarEvent(
             event_id=expected_event_id,
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",  # 絵文字付き
             description="[TIDE]\n- 満潮: 06:00\n\n[FORECAST]\n風速: 5m/s\n\n[NOTES]\n手動で追加したメモ",
             date=target_date,
             location_id=location.id,

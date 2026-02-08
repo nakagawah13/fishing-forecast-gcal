@@ -26,13 +26,13 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
         )
         assert event.event_id == "test_event_123"
-        assert event.title == "潮汐 東京湾 (大潮)"
+        assert event.title == "🔴東京湾 (大潮)"
         assert event.date == date(2026, 2, 8)
         assert event.location_id == "tokyo_bay"
 
@@ -41,7 +41,7 @@ class TestCalendarEvent:
         with pytest.raises(ValueError, match="event_id must not be empty"):
             CalendarEvent(
                 event_id="",
-                title="潮汐 東京湾 (大潮)",
+                title="🔴東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
                 location_id="tokyo_bay",
@@ -52,7 +52,7 @@ class TestCalendarEvent:
         with pytest.raises(ValueError, match="event_id must not be empty"):
             CalendarEvent(
                 event_id="   ",
-                title="潮汐 東京湾 (大潮)",
+                title="🔴東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
                 location_id="tokyo_bay",
@@ -98,7 +98,7 @@ class TestCalendarEvent:
         with pytest.raises(ValueError, match="location_id must not be empty"):
             CalendarEvent(
                 event_id="test_event_123",
-                title="潮汐 東京湾 (大潮)",
+                title="🔴東京湾 (大潮)",
                 description="test",
                 date=date(2026, 2, 8),
                 location_id="",
@@ -117,7 +117,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -134,7 +134,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -155,7 +155,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -179,7 +179,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -202,7 +202,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -218,7 +218,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -239,7 +239,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -268,7 +268,7 @@ class TestCalendarEvent:
 """
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description=description,
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -281,7 +281,7 @@ class TestCalendarEvent:
         """CalendarEventが不変であること"""
         event = CalendarEvent(
             event_id="test_event_123",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description="test",
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
