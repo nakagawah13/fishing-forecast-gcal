@@ -105,9 +105,7 @@ def load_config(config_path: str = "config/config.yaml") -> AppConfig:
     locations = _parse_locations(config["locations"])
 
     # Parse and validate fishing_conditions (optional)
-    fishing_conditions = _parse_fishing_conditions(
-        config.get("fishing_conditions", {})
-    )
+    fishing_conditions = _parse_fishing_conditions(config.get("fishing_conditions", {}))
 
     return AppConfig(
         settings=settings,
@@ -172,9 +170,7 @@ def _parse_settings(settings_dict: dict[str, Any]) -> AppSettings:
 
     # Validate credentials path exists
     if not pathlib.Path(google_credentials_path).exists():
-        raise ValueError(
-            f"Google credentials file not found: {google_credentials_path}"
-        )
+        raise ValueError(f"Google credentials file not found: {google_credentials_path}")
 
     return AppSettings(
         timezone=timezone,
@@ -221,9 +217,7 @@ def _parse_locations(locations_list: list[dict[str, Any]]) -> list[Location]:
     return locations
 
 
-def _parse_fishing_conditions(
-    fishing_conditions_dict: dict[str, Any]
-) -> FishingConditionSettings:
+def _parse_fishing_conditions(fishing_conditions_dict: dict[str, Any]) -> FishingConditionSettings:
     """Parse and validate fishing_conditions section.
 
     Args:
@@ -236,19 +230,27 @@ def _parse_fishing_conditions(
         ValueError: If fishing_conditions are invalid
     """
     # Provide defaults for optional section
-    defaults = {
+    defaults: dict[str, Any] = {
         "prime_time_offset_hours": 2,
         "max_wind_speed_ms": 10.0,
         "preferred_tide_types": ["大潮", "中潮"],
     }
 
-    merged = {**defaults, **fishing_conditions_dict}
+    merged: dict[str, Any] = {**defaults, **fishing_conditions_dict}
 
     try:
-        prime_time_offset_hours = int(merged["prime_time_offset_hours"])
-        max_wind_speed_ms = float(merged["max_wind_speed_ms"])
-        preferred_tide_types = [str(t) for t in merged["preferred_tide_types"]]
-    except (TypeError, ValueError) as e:
+        prime_time_offset_hours_raw = merged["prime_time_offset_hours"]
+        max_wind_speed_ms_raw = merged["max_wind_speed_ms"]
+        preferred_tide_types_raw = merged["preferred_tide_types"]
+        
+        # Type validation and conversion
+        prime_time_offset_hours = int(prime_time_offset_hours_raw)
+        max_wind_speed_ms = float(max_wind_speed_ms_raw)
+        
+        if not isinstance(preferred_tide_types_raw, list):
+            raise ValueError("preferred_tide_types must be a list")
+        preferred_tide_types = [str(t) for t in preferred_tide_types_raw]
+    except (TypeError, ValueError, KeyError) as e:
         raise ValueError(f"Invalid type in fishing_conditions: {e}") from e
 
     # Range validation

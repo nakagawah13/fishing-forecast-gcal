@@ -27,16 +27,16 @@ def main() -> None:
             sys.exit(1)
 
         config = load_config(str(config_path))
-        settings = config["settings"]
+        settings = config.settings
         print(f"✅ Configuration loaded from: {config_path}")
-        print(f"   - Timezone: {settings['timezone']}")
-        print(f"   - Calendar ID: {settings['calendar_id'][:30]}...")
+        print(f"   - Timezone: {settings.timezone}")
+        print(f"   - Calendar ID: {settings.calendar_id[:30]}...")
         print()
 
         # Initialize Google Calendar client
         print("[2/3] Authenticating with Google Calendar API...")
-        credentials_path = settings["google_credentials_path"]
-        token_path = settings["google_token_path"]
+        credentials_path = settings.google_credentials_path
+        token_path = settings.google_token_path
 
         client = GoogleCalendarClient(credentials_path, token_path)
         client.authenticate()
