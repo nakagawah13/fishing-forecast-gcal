@@ -25,6 +25,21 @@ class TestTideType:
         assert TideType.LONG.value == "長潮"
         assert TideType.YOUNG.value == "若潮"
 
+    def test_tide_type_to_emoji(self) -> None:
+        """全ての潮回りに対応する絵文字が返されること"""
+        assert TideType.SPRING.to_emoji() == "🔴"
+        assert TideType.MODERATE.to_emoji() == "🟠"
+        assert TideType.NEAP.to_emoji() == "🔵"
+        assert TideType.LONG.to_emoji() == "⚪"
+        assert TideType.YOUNG.to_emoji() == "🟢"
+
+    def test_tide_type_emoji_consistency(self) -> None:
+        """全ての潮回りに絵文字が定義されていること"""
+        for tide_type in TideType:
+            emoji = tide_type.to_emoji()
+            assert isinstance(emoji, str)
+            assert len(emoji) == 1  # 絵文字は1文字（Unicode的には複数バイト）
+
 
 class TestTideEvent:
     """TideEventモデルのテスト"""
