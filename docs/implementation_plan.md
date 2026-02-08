@@ -334,20 +334,37 @@
 
 ### 1.4 Presentation Layer（CLI・設定）
 
-#### T-011: 設定ファイルローダー
+#### T-011: 設定ファイルローダー ✅
 **責務**: `config.yaml` の読み込みと検証
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `presentation/config_loader.py`
   - YAMLパース
-  - スキーマ検証
+  - スキーマ検証（必須キー、型チェック、範囲チェック）
   - Locationモデルへのマッピング
   - Locationの不変ID（`locations[].id`）の読み込み
   - OAuth 認証パス（`google_credentials_path`, `google_token_path`）の読み込み
+  - 型安全なデータクラス（`AppSettings`, `FishingConditionSettings`, `AppConfig`）
 
 **テスト要件**:
-- 正常なYAMLのパース
-- 不正なYAMLのエラー検知
+- 正常なYAMLのパース ✅
+- 不正なYAMLのエラー検知 ✅
+
+**実績**:
+- 21件の単体テストすべてパス
+- カバレッジ93%（config_loader.py）
+- 正常系・異常系・エッジケースを網羅
+- Pyright型チェックパス（型エラー0件）
+- 詳細: [docs/completed/issue-22.md](completed/issue-22.md)
+
+**依存**: T-001
+
+**実装完了**: 2026-02-08
+- Issue #22 にて実装
+- 単体テスト 21件、カバレッジ93%
+- ドキュメント: [docs/completed/issue-22.md](./completed/issue-22.md)
 
 **依存**: T-001
 
