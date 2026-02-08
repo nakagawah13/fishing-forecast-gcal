@@ -379,7 +379,9 @@
 - `presentation/cli.py`
   - 引数パース（argparse）
   - サブコマンド `sync-tide` の実装
-  - コマンドラインオプション（`--config`, `--location-id`, `--start-date`, `--end-date`, `--dry-run`, `--verbose`）
+  - コマンドラインオプション（`--config`, `--location-id`, `--start-date`, `--end-date`, `--days`, `--dry-run`, `--verbose`）
+  - `--days` と `--end-date` の排他チェック、`--days` の値バリデーション（>= 1）
+  - 期間決定の優先度: `--end-date` > `--days` > `config.tide_register_months`
   - 依存オブジェクトの構築（DI）
   - SyncTideUseCaseの呼び出しとエラーハンドリング
   - ユーザーフレンドリーなログ出力
@@ -389,8 +391,8 @@
 - Mock UseCaseで呼び出し確認 ✅
   
 **実績**:
-- 単体テスト13件すべてパス
-- カバレッジ90%（cli.py）
+- 単体テスト19件すべてパス
+- カバレッジ91%（cli.py）
 - サブコマンド方式でフェーズ2での拡張に対応
 - dry-runモードサポート
 - 詳細: [docs/completed/issue-23.md](./completed/issue-23.md)

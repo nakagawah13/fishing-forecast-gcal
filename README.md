@@ -69,7 +69,7 @@ uv sync
 uv run python scripts/fetch_jma_tide_data.py --station TK --year 2025
 
 # 利用可能な地点一覧を表示
-uv run python scripts/fetch_jma_ide_data.py --list-stations
+uv run python scripts/fetch_jma_tide_data.py --list-stations
 ```
 
 生成された調和定数ファイル（`.pkl`）は `config/harmonics/` に保存されます。
