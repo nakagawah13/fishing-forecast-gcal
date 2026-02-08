@@ -26,6 +26,82 @@ JST = ZoneInfo("Asia/Tokyo")
 DEFAULT_TARGET_DATE = date(2026, 2, 18)
 DEFAULT_TOLERANCE_MINUTES = 10
 BOUNDARY_LOW_TIME = time(23, 55)
+FIXTURE_STATION_ID = "TK"
+FIXTURE_TARGET_DATE = date(2024, 11, 3)
+FIXTURE_FILE = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "jma_suisan_TK_2024_11_03.txt"
+)
+
+
+@pytest.mark.integration
+def test_suisan_high_low_matches_boundary_fixture() -> None:
+    """Ensure high/low tides match boundary fixture data.
+
+    境界条件の検証用フィクスチャを使い、満干潮が欠落しないことを確認します。
+    """
+    if not FIXTURE_FILE.exists():
+        pytest.fail(f"フィクスチャが存在しません: {FIXTURE_FILE}")
+
+    text = FIXTURE_FILE.read_text(encoding="utf-8")
+    daily_map = parse_jma_suisan_text(text, FIXTURE_STATION_ID)
+
+    if FIXTURE_TARGET_DATE not in daily_map:
+        pytest.fail(f"フィクスチャに対象日が含まれていません: {FIXTURE_TARGET_DATE}")
+
+    expected = daily_map[FIXTURE_TARGET_DATE]
+    if len(expected.highs) < 2 or len(expected.lows) < 2:
+        pytest.fail(
+            "フィクスチャの満干潮が2回未満です: "
+            f"highs={len(expected.highs)}, lows={len(expected.lows)}"
+        )
+
+    if not any(low_time >= BOUNDARY_LOW_TIME for low_time, _height in expected.lows):
+        pytest.fail("フィクスチャに境界条件(23:55以降の干潮)が含まれていません")
+
+    harmonics_dir = Path("config/harmonics")
+    harmonics_file = harmonics_dir / f"{FIXTURE_STATION_ID.lower()}.pkl"
+    if not harmonics_file.exists():
+        pytest.skip(f"調和定数ファイルが存在しません: {harmonics_file}")
+
+    location = Location(
+        id="jma_fixture",
+        name="JMA Fixture",
+        latitude=35.65,
+        longitude=139.77,
+        station_id=FIXTURE_STATION_ID,
+    )
+    adapter = TideCalculationAdapter(harmonics_dir)
+    service = TideCalculationService()
+
+    tide_data = adapter.calculate_tide(location, FIXTURE_TARGET_DATE)
+    events = service.extract_high_low_tides(tide_data)
+    events_for_day = [
+        event for event in events if event.time.astimezone(JST).date() == FIXTURE_TARGET_DATE
+    ]
+
+    highs = [event for event in events_for_day if event.event_type == "high"]
+    lows = [event for event in events_for_day if event.event_type == "low"]
+
+    assert len(highs) >= 2, "満潮が2回未満です"
+    assert len(lows) >= 2, "干潮が2回未満です"
+
+    for expected_time, _height in expected.highs[:2]:
+        _assert_time_match(
+            FIXTURE_TARGET_DATE,
+            expected_time,
+            highs,
+            DEFAULT_TOLERANCE_MINUTES,
+            label="満潮",
+        )
+
+    for expected_time, _height in expected.lows[:2]:
+        _assert_time_match(
+            FIXTURE_TARGET_DATE,
+            expected_time,
+            lows,
+            DEFAULT_TOLERANCE_MINUTES,
+            label="干潮",
+        )
 
 
 @pytest.mark.integration
@@ -55,7 +131,7 @@ def test_suisan_high_low_matches_target_date() -> None:
 
     target_date = _select_target_date(daily_map, os.getenv("JMA_SUISAN_DATE"))
     if target_date is None:
-        pytest.skip(f"境界条件(23:55以降の干潮)を満たす日が見つかりません: station={station_id}")
+        pytest.skip(f"対象日が見つかりません: station={station_id}")
 
     if target_date not in daily_map:
         pytest.fail(f"対象日がデータに含まれていません: {target_date}")
@@ -112,7 +188,7 @@ def _select_target_date(
     daily_map: dict[date, object],
     raw_date: str | None,
 ) -> date | None:
-    """Select target date for boundary-condition verification.
+    """Select target date for external JMA data verification.
 
     環境変数で指定された対象日を解析します。
 
@@ -135,14 +211,6 @@ def _select_target_date(
 
     if DEFAULT_TARGET_DATE in daily_map:
         return DEFAULT_TARGET_DATE
-
-    for candidate, daily in daily_map.items():
-        highs = getattr(daily, "highs", [])
-        lows = getattr(daily, "lows", [])
-        if len(highs) < 2 or len(lows) < 2:
-            continue
-        if any(low_time >= BOUNDARY_LOW_TIME for low_time, _height in lows):
-            return candidate
 
     return None
 
