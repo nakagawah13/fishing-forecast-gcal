@@ -25,6 +25,7 @@ JST = ZoneInfo("Asia/Tokyo")
 
 DEFAULT_TARGET_DATE = date(2026, 2, 18)
 DEFAULT_TOLERANCE_MINUTES = 10
+BOUNDARY_LOW_TIME = time(23, 55)
 
 
 @pytest.mark.integration
@@ -45,13 +46,16 @@ def test_suisan_high_low_matches_target_date() -> None:
     tolerance = int(os.getenv("JMA_SUISAN_TOLERANCE_MIN", str(DEFAULT_TOLERANCE_MINUTES)))
     harmonics_dir = Path(os.getenv("JMA_HARMONICS_DIR", "config/harmonics"))
     harmonics_file = harmonics_dir / f"{station_id.lower()}.pkl"
-    target_date = _parse_target_date(os.getenv("JMA_SUISAN_DATE"))
 
     if not harmonics_file.exists():
         pytest.skip(f"調和定数ファイルが存在しません: {harmonics_file}")
 
     text = path.read_text(encoding="utf-8")
     daily_map = parse_jma_suisan_text(text, station_id)
+
+    target_date = _select_target_date(daily_map, os.getenv("JMA_SUISAN_DATE"))
+    if target_date is None:
+        pytest.skip(f"境界条件(23:55以降の干潮)を満たす日が見つかりません: station={station_id}")
 
     if target_date not in daily_map:
         pytest.fail(f"対象日がデータに含まれていません: {target_date}")
@@ -104,26 +108,43 @@ def test_suisan_high_low_matches_target_date() -> None:
         )
 
 
-def _parse_target_date(raw_date: str | None) -> date:
-    """Parse target date from environment variable.
+def _select_target_date(
+    daily_map: dict[date, object],
+    raw_date: str | None,
+) -> date | None:
+    """Select target date for boundary-condition verification.
 
     環境変数で指定された対象日を解析します。
 
     Args:
+        daily_map (dict[date, object]): Parsed daily data mapping.
+                         (パース済み日別データ)
         raw_date (str | None): Target date string in YYYY-MM-DD format.
-                               (YYYY-MM-DD 形式の対象日)
+                       (YYYY-MM-DD 形式の対象日)
 
     Returns:
-        date: Parsed target date.
-              (解析済みの対象日)
+          date | None: Selected target date, or None if not found.
+                   (選択された対象日。見つからない場合は None)
     """
-    if not raw_date:
+    if raw_date:
+        try:
+            return date.fromisoformat(raw_date)
+        except ValueError as exc:
+            pytest.fail(f"JMA_SUISAN_DATE の形式が不正です: {raw_date}")
+            raise exc
+
+    if DEFAULT_TARGET_DATE in daily_map:
         return DEFAULT_TARGET_DATE
-    try:
-        return date.fromisoformat(raw_date)
-    except ValueError as exc:
-        pytest.fail(f"JMA_SUISAN_DATE の形式が不正です: {raw_date}")
-        raise exc
+
+    for candidate, daily in daily_map.items():
+        highs = getattr(daily, "highs", [])
+        lows = getattr(daily, "lows", [])
+        if len(highs) < 2 or len(lows) < 2:
+            continue
+        if any(low_time >= BOUNDARY_LOW_TIME for low_time, _height in lows):
+            return candidate
+
+    return None
 
 
 def _assert_time_match(
