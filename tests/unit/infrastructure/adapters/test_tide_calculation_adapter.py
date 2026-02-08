@@ -80,6 +80,7 @@ def tokyo_bay_location() -> Location:
         name="東京湾",
         latitude=35.654,
         longitude=139.7795,
+        station_id="tokyo_bay",
     )
 
 
@@ -108,16 +109,17 @@ class TestTideCalculationAdapterInit:
 class TestCalculateTide:
     """TideCalculationAdapter.calculate_tide のテスト."""
 
-    def test_returns_24_data_points(
+    def test_returns_expected_data_points(
         self,
         harmonics_dir: Path,
         tokyo_bay_location: Location,
     ) -> None:
-        """24個のデータポイントを返すこと."""
+        """分単位のデータポイント数を返すこと."""
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 8))
 
-        assert len(result) == 24
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        assert len(result) == expected_points
 
     def test_returns_timezone_aware_datetimes(
         self,
@@ -131,18 +133,29 @@ class TestCalculateTide:
         for dt, _height in result:
             assert dt.tzinfo is not None
 
-    def test_returns_hourly_intervals(
+    def test_returns_minute_intervals(
         self,
         harmonics_dir: Path,
         tokyo_bay_location: Location,
     ) -> None:
-        """1時間刻みのデータを返すこと."""
+        """分単位の時刻間隔を返すこと."""
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 8))
 
         for i in range(1, len(result)):
             diff = (result[i][0] - result[i - 1][0]).total_seconds()
-            assert diff == 3600.0
+            assert diff == adapter.PREDICTION_INTERVAL_MINUTES * 60
+
+    def test_includes_non_zero_minutes(
+        self,
+        harmonics_dir: Path,
+        tokyo_bay_location: Location,
+    ) -> None:
+        """分が00固定にならないこと."""
+        adapter = TideCalculationAdapter(harmonics_dir)
+        result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 8))
+
+        assert any(dt.minute != 0 for dt, _height in result)
 
     def test_starts_at_midnight_jst(
         self,
@@ -206,7 +219,8 @@ class TestCalculateTide:
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2020, 1, 1))
 
-        assert len(result) == 24
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        assert len(result) == expected_points
 
     def test_future_date_works(
         self,
@@ -217,7 +231,8 @@ class TestCalculateTide:
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2030, 12, 31))
 
-        assert len(result) == 24
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        assert len(result) == expected_points
 
     def test_unknown_location_raises_file_not_found(
         self,
@@ -230,6 +245,7 @@ class TestCalculateTide:
             name="未知の湾",
             latitude=35.0,
             longitude=139.0,
+            station_id="unknown_bay",
         )
 
         with pytest.raises(FileNotFoundError, match="調和定数ファイルが見つかりません"):
@@ -254,7 +270,8 @@ class TestCoefficientsCache:
         # pickleファイルを削除しても2回目は成功（キャッシュ使用）
         (harmonics_dir / "tokyo_bay.pkl").unlink()
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 9))
-        assert len(result) == 24
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        assert len(result) == expected_points
 
     def test_clear_cache(
         self,
@@ -283,7 +300,13 @@ class TestLoadCoefficientsValidation:
             f.write(b"not a valid pickle data")
 
         adapter = TideCalculationAdapter(harmonics_path)
-        location = Location(id="broken", name="壊れたデータ", latitude=35.0, longitude=139.0)
+        location = Location(
+            id="broken",
+            name="壊れたデータ",
+            latitude=35.0,
+            longitude=139.0,
+            station_id="broken",
+        )
 
         with pytest.raises(RuntimeError, match="調和定数ファイルの読み込みに失敗しました"):
             adapter.calculate_tide(location, date(2026, 2, 8))
@@ -299,7 +322,13 @@ class TestLoadCoefficientsValidation:
             pickle.dump(incomplete_coef, f)
 
         adapter = TideCalculationAdapter(harmonics_path)
-        location = Location(id="incomplete", name="不完全データ", latitude=35.0, longitude=139.0)
+        location = Location(
+            id="incomplete",
+            name="不完全データ",
+            latitude=35.0,
+            longitude=139.0,
+            station_id="incomplete",
+        )
 
         with pytest.raises(RuntimeError, match="必須フィールドが不足しています"):
             adapter.calculate_tide(location, date(2026, 2, 8))
@@ -360,11 +389,16 @@ class TestGenerateHarmonics:
         # 生成結果を使って予測
         adapter = TideCalculationAdapter(harmonics_path)
         location = Location(
-            id="generated_bay", name="生成テスト", latitude=35.654, longitude=139.78
+            id="generated_bay",
+            name="生成テスト",
+            latitude=35.654,
+            longitude=139.78,
+            station_id="generated_bay",
         )
         result = adapter.calculate_tide(location, date(2026, 2, 8))
 
-        assert len(result) == 24
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        assert len(result) == expected_points
 
     def test_insufficient_data_raises_value_error(self, tmp_path: Path) -> None:
         """データ不足で ValueError が発生すること."""
