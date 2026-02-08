@@ -147,7 +147,11 @@ class SyncTideUseCase:
         """
         # 絵文字凡例を先頭に追加
         emoji_legend = "🔴大潮 🟠中潮 🔵小潮 ⚪長潮 🟢若潮"
-        sections = [emoji_legend, f"\n[TIDE]\n{tide_section}", "\n[FORECAST]\n（フェーズ2で追加予定）"]
+        sections = [
+            emoji_legend,
+            f"\n[TIDE]\n{tide_section}",
+            "\n[FORECAST]\n（フェーズ2で追加予定）",
+        ]
 
         if existing_notes:
             sections.append(f"\n[NOTES]\n{existing_notes}")
