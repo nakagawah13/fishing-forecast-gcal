@@ -1,8 +1,9 @@
 # Issue #19: T-008 Google Calendar API クライアント
 
-**ステータス**: In Progress  
+**ステータス**: ✅ Completed  
 **担当者**: AI  
 **開始日**: 2026-02-08  
+**完了日**: 2026-02-08  
 **Issue**: https://github.com/nakagawah13/fishing-forecast-gcal/issues/19
 
 ---
@@ -249,3 +250,120 @@ def list_events(
 - [Events: get](https://developers.google.com/calendar/api/v3/reference/events/get)
 - [Events: patch](https://developers.google.com/calendar/api/v3/reference/events/patch)
 - [docs/implementation_plan.md T-008](../implementation_plan.md)
+
+---
+
+## 実装結果・変更点
+
+### 実装完了項目
+
+以下の3つのメソッドを `GoogleCalendarClient` に追加実装しました：
+
+#### 1. `create_event()` メソッド
+- **機能**: カレンダーに新規イベントを作成
+- **特徴**:
+  - 終日イベント（all-day event）形式をサポート
+  - `eventId` パラメータで明示的にIDを指定（冪等性を保証）
+  - タイムゾーン指定可能（デフォルト: Asia/Tokyo）
+- **シグネチャ**:
+  ```python
+  def create_event(
+      self,
+      calendar_id: str,
+      event_id: str,
+      summary: str,
+      description: str,
+      start_date: Any,
+      end_date: Any,
+      timezone: str = "Asia/Tokyo",
+  ) -> dict[str, Any]
+  ```
+
+#### 2. `get_event()` メソッド
+- **機能**: イベントIDでイベントを取得
+- **特徴**:
+  - 存在しないイベントの場合は `None` を返す（404エラーをハンドリング）
+  - エラー発生時は適切に例外を再送出
+- **シグネチャ**:
+  ```python
+  def get_event(
+      self,
+      calendar_id: str,
+      event_id: str
+  ) -> dict[str, Any] | None
+  ```
+
+#### 3. `update_event()` メソッド
+- **機能**: 既存イベントを部分更新
+- **特徴**:
+  - Google Calendar API の `patch` メソッドを使用（部分更新）
+  - 指定されたフィールドのみを更新（他のフィールドは保持）
+  - イベントが存在しない場合は `RuntimeError` を送出
+- **シグネチャ**:
+  ```python
+  def update_event(
+      self,
+      calendar_id: str,
+      event_id: str,
+      summary: str | None = None,
+      description: str | None = None,
+      start_date: Any = None,
+      end_date: Any = None,
+      timezone: str = "Asia/Tokyo",
+  ) -> dict[str, Any]
+  ```
+
+### テスト実装
+
+単体テスト（`tests/unit/infrastructure/clients/test_google_calendar_client.py`）を作成しました：
+
+**テストケース**（計9件）:
+1. ✅ `test_create_event_success` - 新規イベント作成の成功ケース
+2. ✅ `test_create_event_idempotency` - 同じイベントIDで再作成（冪等性）
+3. ✅ `test_get_event_success` - 既存イベント取得の成功ケース
+4. ✅ `test_get_event_not_found` - 存在しないイベントの取得（Noneを返す）
+5. ✅ `test_update_event_success` - イベント更新（summary更新）
+6. ✅ `test_update_event_description_only` - イベント更新（description更新）
+7. ✅ `test_update_event_not_found` - 存在しないイベントの更新（例外送出）
+8. ✅ `test_get_service_before_authentication` - 認証前のサービス取得（例外送出）
+9. ✅ `test_create_event_authentication_error` - 認証エラー（401）
+
+**テスト結果**: 全9件パス
+
+### 品質チェック結果
+
+- ✅ `ruff format .` - コードフォーマット適用（2ファイル）
+- ✅ `ruff check .` - Lintチェック通過（エラー0件）
+- ✅ `pyright` - 型チェック通過（エラー0件）
+- ✅ `pytest` - 全テスト通過（146 passed, 3 skipped）
+
+### カバレッジ
+
+- `google_calendar_client.py` のカバレッジ: 57%
+  - 実装した3メソッドは100%カバー
+  - 未カバー部分は OAuth2 認証フロー（統合テストで検証予定）
+
+### 変更ファイル
+
+1. **実装**:
+   - `src/fishing_forecast_gcal/infrastructure/clients/google_calendar_client.py` - メソッド追加（+142行）
+
+2. **テスト**:
+   - `tests/unit/infrastructure/clients/__init__.py` - 新規作成
+   - `tests/unit/infrastructure/clients/test_google_calendar_client.py` - 新規作成（+327行）
+
+3. **ドキュメント**:
+   - `docs/inprogress/issue-19.md` - 新規作成（本ファイル）
+
+### 次のステップ（参考）
+
+T-008 の実装は完了しましたが、今後の拡張として以下が考えられます：
+
+1. **統合テスト**: 実際のGoogle Calendar APIを使用したE2Eテスト（T-009/T-013で実施予定）
+2. **イベント検索**: `list_events()` メソッドの実装（必要に応じて）
+3. **エラーリトライ**: 5xxエラー時の自動リトライ機能（Phase 3で実施予定）
+4. **レート制限対応**: APIレート制限の検知と待機処理（Phase 3で実施予定）
+
+---
+
+**完了判定**: ✅ 全要件を満たし、テスト・品質チェックをすべてクリアしました。
