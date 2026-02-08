@@ -1,8 +1,9 @@
 # Issue #21: T-010 SyncTideUseCase 実装
 
-**ステータス**: In Progress  
-**担当**: AI  
-**開始日**: 2026-02-08  
+**ステータス**: ✅ Completed
+**担当**: AI
+**開始日**: 2026-02-08
+**完了日**: 2026-02-08
 **関連Issue**: [#21](https://github.com/nakagawah13/fishing-forecast-gcal/issues/21)
 
 ---
@@ -172,26 +173,29 @@ class SyncTideUseCase:
 1. 潮汐データ取得
    ↓ tide_repo.get_tide_data(location, target_date)
    
-2. イベント本文生成
+2. イベントID生成
+   ↓ CalendarEvent.generate_event_id(location.id, target_date)
+   
+3. イベント本文生成
    ↓ _format_tide_section(tide)
    
-3. 既存イベント取得
+4. 既存イベント取得
    ↓ calendar_repo.get_event(event_id)
    
-4. 既存の[NOTES]を保持
+5. 既存の[NOTES]を保持
    ↓ existing_event.extract_section("NOTES") if exists
    
-5. CalendarEvent作成
+6. CalendarEvent作成
    ↓ CalendarEvent(...)
    
-6. カレンダーに登録
+7. カレンダーに登録
    ↓ calendar_repo.upsert_event(event)
 ```
 
 ### イベントID生成
 
-- CalendarRepositoryが `calendar_id + location_id + date` のMD5ハッシュを生成
-- UseCaseではevent_idを直接生成せず、CalendarRepositoryに委譲
+- `CalendarEvent.generate_event_id(location_id, target_date)` ドメインモデルの静的メソッドで生成
+- `location_id + date` の MD5 ハッシュ（Google Calendar API のスコープ内で一意）
 
 ### 本文生成ロジック
 
@@ -423,3 +427,175 @@ uv run pytest tests/unit/application/usecases/test_sync_tide_usecase.py -v
 - [Issue #21](https://github.com/nakagawah13/fishing-forecast-gcal/issues/21)
 - [domain/models/calendar_event.py](../../src/fishing_forecast_gcal/domain/models/calendar_event.py)
 - [docs/completed/issue-20.md](../completed/issue-20.md) - CalendarRepository実装詳細
+
+---
+
+## 実装結果・変更点
+
+### 実装完了日時
+
+2026-02-08
+
+### 実装内容
+
+#### 1. CalendarEvent ドメインモデルにイベントID生成を配置
+
+**ファイル**: `src/fishing_forecast_gcal/domain/models/calendar_event.py`
+
+- `CalendarEvent.generate_event_id(location_id, target_date)` 静的メソッドを追加
+- `location_id + date` の MD5 ハッシュでイベントIDを生成
+- `from __future__ import annotations` を追加（`date` フィールド名と `datetime.date` 型のシャドウイング回避）
+
+**理由**: イベントID生成は純粋なドメインロジック（`location_id + date` のみ使用）であり、インフラ層の責務ではない。Google Calendar API のイベントIDはカレンダースコープ内で一意であればよく、`calendar_id` をハッシュ素材に含める必要はない。
+
+#### 2. ICalendarRepository から event_id 生成メソッドを削除
+
+**ファイル**: `src/fishing_forecast_gcal/domain/repositories/calendar_repository.py`
+
+- `generate_event_id_for_location_date` 抽象メソッドを削除
+- docstring を更新し `CalendarEvent.generate_event_id()` への参照を追加
+- `__all__` を追加
+
+**理由**: ID生成はリポジトリの責務ではなく、インターフェースを汚染していた。すべての実装者（Mock含む）が不要なメソッドを実装する必要があった（ISP違反）。
+
+#### 3. CalendarRepository から ID 生成ロジックを削除
+
+**ファイル**: `src/fishing_forecast_gcal/infrastructure/repositories/calendar_repository.py`
+
+- `generate_event_id` 静的メソッドと `generate_event_id_for_location_date` インスタンスメソッドを削除
+- `import hashlib` を削除
+
+#### 4. SyncTideUseCaseの実装
+
+**ファイル**: `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py`
+
+**主要メソッド**:
+- `execute(location, target_date)`: メイン処理
+- `_format_tide_section(tide)`: [TIDE]セクション生成（`@staticmethod`）
+- `_build_description(tide_section, existing_notes)`: イベント本文構築（`@staticmethod`）
+
+**処理フロー**:
+1. 潮汐データ取得（`tide_repo.get_tide_data`）
+2. イベントID生成（`CalendarEvent.generate_event_id(location.id, target_date)`）
+3. [TIDE]セクション生成（`_format_tide_section`）
+4. 既存イベント取得（`calendar_repo.get_event`）
+5. 既存の[NOTES]セクション抽出（存在する場合）
+6. イベント本文構築（[TIDE], [FORECAST], [NOTES]）
+7. CalendarEventオブジェクト作成
+8. カレンダーに登録（`calendar_repo.upsert_event`）
+
+**エラーハンドリング**:
+- 潮汐データ取得失敗時とカレンダー更新失敗時にRuntimeErrorを発生
+- ログ出力で詳細を記録
+
+#### 5. テストの実装・更新
+
+**ファイル**: `tests/unit/application/usecases/test_sync_tide_usecase.py`
+
+**テストケース** (全7件):
+1. ✅ `test_execute_creates_new_event`: 新規イベント作成
+2. ✅ `test_execute_updates_existing_event`: 既存イベント更新
+3. ✅ `test_execute_preserves_notes_section`: [NOTES]セクション保持
+4. ✅ `test_execute_with_single_high_tide`: 満潮1回のみ
+5. ✅ `test_execute_with_no_prime_time`: 時合い帯なし
+6. ✅ `test_execute_raises_on_tide_data_error`: 潮汐データ取得失敗
+7. ✅ `test_execute_raises_on_calendar_error`: カレンダー更新失敗
+
+**カバレッジ**: 100% (SyncTideUseCase)
+
+**ファイル**: `tests/unit/domain/models/test_calendar_event.py`
+
+- `TestCalendarEventGenerateEventId` クラスを追加（5件）:
+  - 冪等性テスト、日付差異、地点ID差異、フォーマット検証、MD5一致検証
+
+**ファイル**: `tests/unit/domain/repositories/test_calendar_repository.py`
+
+- Mock実装から `generate_event_id_for_location_date` を削除
+
+**ファイル**: `tests/unit/infrastructure/repositories/test_calendar_repository.py`
+
+- `TestEventIDGeneration` クラスﾈ4件ﾉを削除（ドメイン層に移動済み）
+
+### 品質チェック結果
+
+- ✅ `uv run ruff format .`: 全ファイルフォーマット済み
+- ✅ `uv run ruff check .`: すべてのチェック通過
+- ✅ `uv run pyright`: 0エラー、0警告
+- ✅ `uv run pytest`: 170テスト通過、3スキップ
+
+### コミット履歴
+
+1. **feat(calendar): add generate_event_id_for_location_date method** (bd69865)
+   - ICalendarRepositoryインターフェースにメソッド追加
+   - CalendarRepositoryに実装追加
+   - テストのMock実装を更新
+
+2. **feat(usecase): implement SyncTideUseCase** (1d0eee4)
+   - SyncTideUseCaseの完全実装
+   - 潮汐データ同期のオーケストレーション
+   - [NOTES]セクション保持機能
+
+3. **test(usecase): add comprehensive unit tests for SyncTideUseCase** (64926a8)
+   - 7つのテストケースを追加
+   - カバレッジ100%達成
+
+4. **docs: add implementation documentation for T-010** (9eb96f5)
+   - 実装ドキュメント作成
+
+5. **refactor: move event_id generation from infrastructure to domain layer** (97c50d4)
+   - `CalendarEvent.generate_event_id()` ドメインモデルに配置
+   - `ICalendarRepository` から `generate_event_id_for_location_date` を削除
+   - `_format_tide_section` / `_build_description` を `@staticmethod` 化
+   - 8ファイル変更、+106/-167行
+
+### 設計判断
+
+#### 1. event_id生成の責務
+
+**初期判断**: CalendarRepositoryのインスタンスメソッドとして提供
+
+**リファクタリング後**: `CalendarEvent.generate_event_id()` ドメインモデルの静的メソッドに移動
+
+**理由**:
+- イベントID生成は純粋なドメインロジック（`location_id + date` のみ使用）
+- Google Calendar API のイベントIDはカレンダースコープ内で一意であればよく、`calendar_id` をハッシュに含める必要はない
+- `ICalendarRepository` に不要な抽象メソッドを強制するのは ISP（インターフェース分離の原則）違反
+- すべての実装者（Mock含む）が ID 生成を実装する負担がなくなる
+
+#### 2. [NOTES]セクションの保持
+
+**実装**: 既存イベントから[NOTES]セクションを抽出し、新しいイベント本文に含める
+
+**理由**:
+- ユーザーが手動で追記したメモを保護する
+- [TIDE]セクションのみを更新し、他のセクションは保持する
+
+#### 3. エラーハンドリング
+
+**実装**: すべての例外をキャッチし、ログ出力してRuntimeErrorを発生
+
+**理由**:
+- 上位レイヤー（CLI）でエラーを適切に処理できる
+- ログで詳細なエラー情報を記録
+
+### 検証済み事項
+
+- [x] 単体テストがすべてパス（7件）
+- [x] カバレッジ100%（SyncTideUseCase）
+- [x] ruff format/check 通過
+- [x] pyright 通過（0エラー）
+- [x] 既存テストがすべてパスﾈ170件）
+- [x] イベント本文に[TIDE], [FORECAST], [NOTES]セクションが含まれる
+- [x] 既存の[NOTES]が保持される
+- [x] 冪等性が保証される（複数回実行しても重複しない設計）
+
+### 課題・今後の改善点
+
+- **`get_event` の重複呼び出し**: UseCase が `get_event(event_id)` で既存イベントを取得し、その後 `upsert_event` 内部でも `get_event` を呼び出している。T-009 スコープでのインターフェース再設計が必要。詳細は [Issue #46](https://github.com/nakagawah13/fishing-forecast-gcal/issues/46) で管理。
+
+### 次のステップ
+
+- ✅ T-010: SyncTideUseCase 実装（完了）
+- ⏭️ T-011: 設定ファイルローダー（次のタスク）
+- ⏭️ T-012: CLI エントリーポイント
+- ⏭️ T-013: E2E テスト
