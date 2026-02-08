@@ -3,7 +3,6 @@
 GoogleCalendarClient をモック化して CalendarRepository の動作を検証します。
 """
 
-import hashlib
 from datetime import date
 from typing import Any
 from unittest.mock import MagicMock
@@ -56,65 +55,6 @@ def sample_api_event() -> dict[str, Any]:
         "end": {"date": "2026-02-09", "timeZone": "Asia/Tokyo"},
         "extendedProperties": {"private": {"location_id": "yokosuka"}},
     }
-
-
-class TestEventIDGeneration:
-    """イベントID生成のテスト"""
-
-    def test_generate_event_id_idempotent(self) -> None:
-        """同じ入力から同じIDが生成される（冪等性）"""
-        calendar_id = "test-calendar"
-        location_id = "yokosuka"
-        target_date = date(2026, 2, 8)
-
-        # 複数回生成
-        id1 = CalendarRepository.generate_event_id(calendar_id, location_id, target_date)
-        id2 = CalendarRepository.generate_event_id(calendar_id, location_id, target_date)
-
-        # 同じIDが生成される
-        assert id1 == id2
-
-    def test_generate_event_id_different_dates(self) -> None:
-        """異なる日付から異なるIDが生成される"""
-        calendar_id = "test-calendar"
-        location_id = "yokosuka"
-
-        id1 = CalendarRepository.generate_event_id(calendar_id, location_id, date(2026, 2, 8))
-        id2 = CalendarRepository.generate_event_id(calendar_id, location_id, date(2026, 2, 9))
-
-        # 異なるIDが生成される
-        assert id1 != id2
-
-    def test_generate_event_id_format(self) -> None:
-        """生成されるIDがGoogle Calendar APIの制約に準拠"""
-        calendar_id = "test-calendar"
-        location_id = "yokosuka"
-        target_date = date(2026, 2, 8)
-
-        event_id = CalendarRepository.generate_event_id(calendar_id, location_id, target_date)
-
-        # MD5ハッシュは32文字
-        assert len(event_id) == 32
-
-        # 英数字のみ（16進数）
-        assert event_id.isalnum()
-
-        # Google Calendar APIの制約（5-1024文字）に準拠
-        assert 5 <= len(event_id) <= 1024
-
-    def test_generate_event_id_matches_md5(self) -> None:
-        """生成されるIDがMD5ハッシュと一致"""
-        calendar_id = "test-calendar"
-        location_id = "yokosuka"
-        target_date = date(2026, 2, 8)
-
-        event_id = CalendarRepository.generate_event_id(calendar_id, location_id, target_date)
-
-        # 期待値を計算
-        source = f"{calendar_id}_{location_id}_{target_date.isoformat()}"
-        expected_id = hashlib.md5(source.encode("utf-8")).hexdigest()
-
-        assert event_id == expected_id
 
 
 class TestGetEvent:

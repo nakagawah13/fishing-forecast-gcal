@@ -9,6 +9,8 @@ from datetime import date
 
 from ..models.calendar_event import CalendarEvent
 
+__all__ = ["ICalendarRepository"]
+
 
 class ICalendarRepository(ABC):
     """カレンダーリポジトリのインターフェース
@@ -18,8 +20,7 @@ class ICalendarRepository(ABC):
 
     Implementation Note:
         具体的な実装では、Google Calendar API を使用します。
-        イベントIDの生成ロジック（calendar_id + location_id + date のハッシュ化）は
-        Infrastructure層で実装します。
+        イベントIDは CalendarEvent.generate_event_id() で生成します。
     """
 
     @abstractmethod
@@ -27,7 +28,7 @@ class ICalendarRepository(ABC):
         """イベントIDでカレンダーイベントを取得
 
         Args:
-            event_id: イベントID（calendar_id + location_id + date から生成されるハッシュ）
+            event_id: イベントID（CalendarEvent.generate_event_id() で生成）
 
         Returns:
             CalendarEvent | None: カレンダーイベント。存在しない場合は None
@@ -36,8 +37,8 @@ class ICalendarRepository(ABC):
             RuntimeError: API呼び出しに失敗した場合（認証エラー、ネットワークエラー等）
 
         Note:
-            - イベントIDは安定ハッシュ（MD5等）で生成されます
-            - 同一の calendar_id + location_id + date の組み合わせは常に同じIDになります
+            - イベントIDは CalendarEvent.generate_event_id() で生成された安定ハッシュです
+            - 同一の location_id + date の組み合わせは常に同じIDになります
         """
         ...
 

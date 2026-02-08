@@ -4,7 +4,6 @@
 Google Calendar API を使用してカレンダーイベントの作成・取得・更新を行います。
 """
 
-import hashlib
 from datetime import date
 from typing import Any
 
@@ -38,37 +37,6 @@ class CalendarRepository(ICalendarRepository):
         self.client = client
         self.calendar_id = calendar_id
         self.timezone = timezone
-
-    @staticmethod
-    def generate_event_id(calendar_id: str, location_id: str, target_date: date) -> str:
-        """イベントIDを生成
-
-        calendar_id + location_id + date を素材に MD5 ハッシュで安定IDを生成します。
-        同じ入力からは常に同じIDが生成されます（冪等性）。
-
-        Args:
-            calendar_id: カレンダーID
-            location_id: 地点の不変ID
-            target_date: 対象日
-
-        Returns:
-            str: イベントID（MD5ハッシュ、32文字）
-
-        Note:
-            Google Calendar API の制約:
-            - 5-1024文字
-            - 英数字とハイフン（-）のみ
-            - 大文字小文字を区別
-
-            MD5ハッシュ（32文字）は制約を満たします。
-        """
-        # calendar_id + location_id + date を結合
-        source = f"{calendar_id}_{location_id}_{target_date.isoformat()}"
-
-        # MD5ハッシュで安定IDを生成
-        event_id = hashlib.md5(source.encode("utf-8")).hexdigest()
-
-        return event_id
 
     def get_event(self, event_id: str) -> CalendarEvent | None:
         """イベントIDでカレンダーイベントを取得

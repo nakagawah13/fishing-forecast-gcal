@@ -1,6 +1,7 @@
 """カレンダーイベントモデルのテスト"""
 
 import dataclasses
+import hashlib
 from datetime import date
 
 import pytest
@@ -287,3 +288,60 @@ class TestCalendarEvent:
         )
         with pytest.raises(dataclasses.FrozenInstanceError):
             event.title = "新しいタイトル"  # type: ignore
+
+
+class TestCalendarEventGenerateEventId:
+    """CalendarEvent.generate_event_id のテスト"""
+
+    def test_generate_event_id_idempotent(self) -> None:
+        """同じ入力から同じIDが生成される（冪等性）"""
+        location_id = "yokosuka"
+        target_date = date(2026, 2, 8)
+
+        id1 = CalendarEvent.generate_event_id(location_id, target_date)
+        id2 = CalendarEvent.generate_event_id(location_id, target_date)
+
+        assert id1 == id2
+
+    def test_generate_event_id_different_dates(self) -> None:
+        """異なる日付から異なるIDが生成される"""
+        location_id = "yokosuka"
+
+        id1 = CalendarEvent.generate_event_id(location_id, date(2026, 2, 8))
+        id2 = CalendarEvent.generate_event_id(location_id, date(2026, 2, 9))
+
+        assert id1 != id2
+
+    def test_generate_event_id_different_locations(self) -> None:
+        """異なる地点から異なるIDが生成される"""
+        target_date = date(2026, 2, 8)
+
+        id1 = CalendarEvent.generate_event_id("yokosuka", target_date)
+        id2 = CalendarEvent.generate_event_id("tokyo_bay", target_date)
+
+        assert id1 != id2
+
+    def test_generate_event_id_format(self) -> None:
+        """Google Calendar API 制約に準拠した形式であること"""
+        event_id = CalendarEvent.generate_event_id("yokosuka", date(2026, 2, 8))
+
+        # MD5ハッシュは32文字
+        assert len(event_id) == 32
+
+        # 英数字のみ（16進数）
+        assert event_id.isalnum()
+
+        # Google Calendar APIの制約（5-1024文字）に準拠
+        assert 5 <= len(event_id) <= 1024
+
+    def test_generate_event_id_matches_md5(self) -> None:
+        """生成されるIDがMD5ハッシュと一致"""
+        location_id = "yokosuka"
+        target_date = date(2026, 2, 8)
+
+        event_id = CalendarEvent.generate_event_id(location_id, target_date)
+
+        source = f"{location_id}_{target_date.isoformat()}"
+        expected_id = hashlib.md5(source.encode("utf-8")).hexdigest()
+
+        assert event_id == expected_id

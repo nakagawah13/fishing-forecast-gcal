@@ -54,7 +54,7 @@
   - Sync-Weather は `[FORECAST]` のみ更新（他セクションは保持）
 - ユーザー編集は `[NOTES]` のみを対象とし、セクション名は変更しない
 - 破損対策: セクションが欠落している場合は自動更新をスキップし、ログで警告する（メモ保護を優先）
-- イベント ID 生成: `calendar_id + location_id + date` を素材に安定ハッシュで生成
+- イベント ID 生成: `location_id + date` を素材に MD5 ハッシュで生成（`CalendarEvent.generate_event_id()` ドメインモデルの静的メソッド）
 
 ## セットアップフロー（案）
 1. GCP プロジェクト作成
@@ -270,7 +270,6 @@
 - `infrastructure/repositories/calendar_repository.py`
   - `ICalendarRepository` の実装
   - DomainモデルとGoogle API形式の変換
-  - イベントID生成（`calendar_id + location_id + date` を素材に MD5 ハッシュ）
   - upsertロジック
   - `extendedProperties` を使用した location_id の保存・取得
 
@@ -279,10 +278,13 @@
 - 冗等性テスト（同一IDで複数回実行） ✅
 
 **実績**:
-- 16件の単体テストすべてパス
+- 12件の単体テストすべてパス（リファクタリングでID生成テスト4件をドメイン層に移動）
 - カバレッジ100%（CalendarRepository）
 - extendedProperties サポートを GoogleCalendarClient に追加
 - 詳細: [docs/completed/issue-20.md](completed/issue-20.md)
+
+**注記**:
+- イベントID生成は T-010 リファクタリングで `CalendarEvent.generate_event_id()` に移動済み
 
 **依存**: T-001, T-002, T-008
 
@@ -295,8 +297,10 @@
 
 ### 1.3 Application Layer（ユースケース）
 
-#### T-010: SyncTideUseCase 実装
+#### T-010: SyncTideUseCase 実装 ✅
 **責務**: 天文潮の同期処理をオーケストレーション
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `application/usecases/sync_tide_usecase.py`
@@ -305,12 +309,26 @@
   - 潮回り判定
   - 時合い帯計算
   - カレンダーイベント作成/更新
+  - [NOTES]セクション保持機能
 
 **テスト要件**:
-- Mockリポジトリで単体テスト
+- Mockリポジトリで単体テスト ✅
 - エンドツーエンドテスト（実リポジトリ使用）
 
+**実績**:
+- 7件の単体テストすべてパス
+- カバレッジ100%（SyncTideUseCase）
+- イベントID生成を `CalendarEvent.generate_event_id()` ドメインモデルに配置
+- `_format_tide_section` / `_build_description` を `@staticmethod` 化
+- 詳細: [docs/completed/issue-21.md](completed/issue-21.md)
+
 **依存**: T-001, T-002, T-003, T-004, T-005, T-007, T-009
+
+**実装完了**: 2026-02-08
+- Issue #21 にて実装
+- 単体テスト 7件、カバレッジ100%
+- リファクタリング: event_id 生成をインフラ層からドメイン層に移動
+- ドキュメント: [docs/completed/issue-21.md](./completed/issue-21.md)
 
 ---
 
