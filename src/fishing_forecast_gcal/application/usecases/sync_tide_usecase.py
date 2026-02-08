@@ -83,7 +83,7 @@ class SyncTideUseCase:
             # 7. CalendarEvent作成
             event = CalendarEvent(
                 event_id=event_id,
-                title=f"潮汐 {location.name} ({tide.tide_type.value})",
+                title=f"{tide.tide_type.to_emoji()}{location.name} ({tide.tide_type.value})",
                 description=description,
                 date=target_date,
                 location_id=location.id,
@@ -145,7 +145,9 @@ class SyncTideUseCase:
         Returns:
             完全なイベント本文
         """
-        sections = [f"[TIDE]\n{tide_section}", "\n[FORECAST]\n（フェーズ2で追加予定）"]
+        # 絵文字凡例を先頭に追加
+        emoji_legend = "🔴大潮 🟠中潮 🔵小潮 ⚪長潮 🟢若潮"
+        sections = [emoji_legend, f"\n[TIDE]\n{tide_section}", "\n[FORECAST]\n（フェーズ2で追加予定）"]
 
         if existing_notes:
             sections.append(f"\n[NOTES]\n{existing_notes}")
