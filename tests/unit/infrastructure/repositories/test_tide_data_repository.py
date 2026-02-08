@@ -40,6 +40,7 @@ class TestTideDataRepository:
             name="横須賀",
             latitude=35.28,
             longitude=139.67,
+            station_id="TK",
         )
 
     @pytest.fixture

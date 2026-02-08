@@ -4,7 +4,7 @@
 実際の TideCalculationAdapter と調和定数データを使用して検証します。
 
 Note:
-    調和定数ファイルは `config/harmonics/{location_id}.pkl` に配置する必要があります。
+    調和定数ファイルは `config/harmonics/{station_id}.pkl` に配置する必要があります。
     ファイルが存在しない場合、一部のテストはスキップされます。
 """
 
@@ -49,6 +49,7 @@ class TestTideDataRepositoryIntegration:
             name="横須賀",
             latitude=35.28,
             longitude=139.67,
+            station_id="TK",
         )
 
     def test_get_tide_data_with_real_harmonics(
@@ -63,7 +64,7 @@ class TestTideDataRepositoryIntegration:
             調和定数ファイル（yokosuka.pkl）が存在しない場合はスキップされます。
         """
         # Skip if harmonics file doesn't exist
-        harmonics_file = harmonics_dir / f"{yokosuka_location.id}.pkl"
+        harmonics_file = harmonics_dir / f"{yokosuka_location.station_id.lower()}.pkl"
         if not harmonics_file.exists():
             pytest.skip(f"Harmonics file not found: {harmonics_file}")
 
@@ -114,6 +115,7 @@ class TestTideDataRepositoryIntegration:
             name="存在しない地点",
             latitude=35.0,
             longitude=139.0,
+            station_id="ZZ",
         )
         target_date = date(2026, 2, 8)
 
@@ -139,7 +141,7 @@ class TestTideDataRepositoryIntegration:
             現在は潮位の妥当性のみを検証しています。
         """
         # Skip if harmonics file doesn't exist
-        harmonics_file = harmonics_dir / f"{yokosuka_location.id}.pkl"
+        harmonics_file = harmonics_dir / f"{yokosuka_location.station_id.lower()}.pkl"
         if not harmonics_file.exists():
             pytest.skip(f"Harmonics file not found: {harmonics_file}")
 
@@ -183,7 +185,7 @@ class TestTideDataRepositoryIntegration:
     ) -> None:
         """複数日の潮汐データ取得"""
         # Skip if harmonics file doesn't exist
-        harmonics_file = harmonics_dir / f"{yokosuka_location.id}.pkl"
+        harmonics_file = harmonics_dir / f"{yokosuka_location.station_id.lower()}.pkl"
         if not harmonics_file.exists():
             pytest.skip(f"Harmonics file not found: {harmonics_file}")
 

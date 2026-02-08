@@ -16,6 +16,7 @@ locations:
     name: "Home"
     latitude: 35.0000
     longitude: 139.0000
+    station_id: "TK"  # 気象庁の観測地点コード（例: TK=東京）
     port_code: "PLACEHOLDER"
 
 fishing_conditions:  # 追加: 釣行判断の閾値設定

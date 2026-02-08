@@ -21,7 +21,13 @@ class TestSyncTideUseCase:
     @pytest.fixture
     def location(self) -> Location:
         """テスト用の地点データ"""
-        return Location(id="tokyo", name="東京湾", latitude=35.6762, longitude=139.6503)
+        return Location(
+            id="tokyo",
+            name="東京湾",
+            latitude=35.6762,
+            longitude=139.6503,
+            station_id="TK",
+        )
 
     @pytest.fixture
     def target_date(self) -> date:

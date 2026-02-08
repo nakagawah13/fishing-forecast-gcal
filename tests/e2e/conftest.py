@@ -91,6 +91,7 @@ def tokyo_location() -> Location:
         name="東京",
         latitude=35.650,
         longitude=139.770,
+        station_id="TK",
     )
 
 
@@ -136,6 +137,7 @@ def temp_config_file(
                 "name": "東京",
                 "latitude": 35.650,
                 "longitude": 139.770,
+                "station_id": "TK",
                 "port_code": "TK",
             },
         ],

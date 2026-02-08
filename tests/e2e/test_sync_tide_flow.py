@@ -338,6 +338,7 @@ class TestSyncTideE2E:
             name="存在しない港",
             latitude=35.0,
             longitude=139.0,
+            station_id="ZZ",
         )
         adapter = TideCalculationAdapter(harmonics_dir=harmonics_dir)
         tide_repo = TideDataRepository(adapter=adapter)
