@@ -23,7 +23,7 @@ from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter impo
 
 JST = ZoneInfo("Asia/Tokyo")
 
-TARGET_DATE = date(2026, 2, 18)
+DEFAULT_TARGET_DATE = date(2026, 2, 18)
 DEFAULT_TOLERANCE_MINUTES = 10
 
 
@@ -45,6 +45,7 @@ def test_suisan_high_low_matches_target_date() -> None:
     tolerance = int(os.getenv("JMA_SUISAN_TOLERANCE_MIN", str(DEFAULT_TOLERANCE_MINUTES)))
     harmonics_dir = Path(os.getenv("JMA_HARMONICS_DIR", "config/harmonics"))
     harmonics_file = harmonics_dir / f"{station_id.lower()}.pkl"
+    target_date = _parse_target_date(os.getenv("JMA_SUISAN_DATE"))
 
     if not harmonics_file.exists():
         pytest.skip(f"調和定数ファイルが存在しません: {harmonics_file}")
@@ -52,12 +53,16 @@ def test_suisan_high_low_matches_target_date() -> None:
     text = path.read_text(encoding="utf-8")
     daily_map = parse_jma_suisan_text(text, station_id)
 
-    if TARGET_DATE not in daily_map:
-        pytest.fail(f"対象日がデータに含まれていません: {TARGET_DATE}")
+    if target_date not in daily_map:
+        pytest.fail(f"対象日がデータに含まれていません: {target_date}")
 
-    expected = daily_map[TARGET_DATE]
+    expected = daily_map[target_date]
     if len(expected.highs) < 2 or len(expected.lows) < 2:
-        pytest.fail("JMA 推算データに満干潮が不足しています")
+        pytest.skip(
+            "JMA 推算データの満干潮が2回未満です: "
+            f"highs={len(expected.highs)}, lows={len(expected.lows)} "
+            f"(date={target_date}, station={station_id})"
+        )
 
     location = Location(
         id="jma_target",
@@ -69,10 +74,10 @@ def test_suisan_high_low_matches_target_date() -> None:
     adapter = TideCalculationAdapter(harmonics_dir)
     service = TideCalculationService()
 
-    tide_data = adapter.calculate_tide(location, TARGET_DATE)
+    tide_data = adapter.calculate_tide(location, target_date)
     events = service.extract_high_low_tides(tide_data)
 
-    events_for_day = [event for event in events if event.time.astimezone(JST).date() == TARGET_DATE]
+    events_for_day = [event for event in events if event.time.astimezone(JST).date() == target_date]
 
     highs = [event for event in events_for_day if event.event_type == "high"]
     lows = [event for event in events_for_day if event.event_type == "low"]
@@ -82,7 +87,7 @@ def test_suisan_high_low_matches_target_date() -> None:
 
     for expected_time, _height in expected.highs[:2]:
         _assert_time_match(
-            TARGET_DATE,
+            target_date,
             expected_time,
             highs,
             tolerance,
@@ -91,12 +96,34 @@ def test_suisan_high_low_matches_target_date() -> None:
 
     for expected_time, _height in expected.lows[:2]:
         _assert_time_match(
-            TARGET_DATE,
+            target_date,
             expected_time,
             lows,
             tolerance,
             label="干潮",
         )
+
+
+def _parse_target_date(raw_date: str | None) -> date:
+    """Parse target date from environment variable.
+
+    環境変数で指定された対象日を解析します。
+
+    Args:
+        raw_date (str | None): Target date string in YYYY-MM-DD format.
+                               (YYYY-MM-DD 形式の対象日)
+
+    Returns:
+        date: Parsed target date.
+              (解析済みの対象日)
+    """
+    if not raw_date:
+        return DEFAULT_TARGET_DATE
+    try:
+        return date.fromisoformat(raw_date)
+    except ValueError as exc:
+        pytest.fail(f"JMA_SUISAN_DATE の形式が不正です: {raw_date}")
+        raise exc
 
 
 def _assert_time_match(
