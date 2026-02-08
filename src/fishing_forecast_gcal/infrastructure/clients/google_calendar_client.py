@@ -104,3 +104,157 @@ class GoogleCalendarClient:
         except Exception as e:
             print(f"Error testing connection: {e}")
             return False
+
+    def create_event(
+        self,
+        calendar_id: str,
+        event_id: str,
+        summary: str,
+        description: str,
+        start_date: Any,
+        end_date: Any,
+        timezone: str = "Asia/Tokyo",
+    ) -> dict[str, Any]:
+        """Create a new calendar event.
+
+        Args:
+            calendar_id: Calendar ID to create event in
+            event_id: Unique event ID (for idempotency)
+            summary: Event title
+            description: Event description (body text)
+            start_date: Event start date (date object)
+            end_date: Event end date (date object, exclusive)
+            timezone: Timezone for the event (default: Asia/Tokyo)
+
+        Returns:
+            Created event details from Google Calendar API
+
+        Raises:
+            RuntimeError: If calendar service is not initialized
+            HttpError: If API call fails
+        """
+        from datetime import date
+
+        service = self.get_service()
+
+        # Convert date objects to ISO string format
+        if isinstance(start_date, date):
+            start_date_str = start_date.isoformat()
+        else:
+            start_date_str = str(start_date)
+
+        if isinstance(end_date, date):
+            end_date_str = end_date.isoformat()
+        else:
+            end_date_str = str(end_date)
+
+        event_body = {
+            "id": event_id,
+            "summary": summary,
+            "description": description,
+            "start": {"date": start_date_str, "timeZone": timezone},
+            "end": {"date": end_date_str, "timeZone": timezone},
+        }
+
+        result = service.events().insert(calendarId=calendar_id, body=event_body).execute()
+        return result  # type: ignore[no-any-return]
+
+    def get_event(self, calendar_id: str, event_id: str) -> dict[str, Any] | None:
+        """Get a calendar event by ID.
+
+        Args:
+            calendar_id: Calendar ID to search in
+            event_id: Event ID to retrieve
+
+        Returns:
+            Event details if found, None if not found
+
+        Raises:
+            RuntimeError: If calendar service is not initialized
+        """
+        from googleapiclient.errors import HttpError
+
+        service = self.get_service()
+
+        try:
+            result = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+            return result  # type: ignore[no-any-return]
+        except HttpError as e:
+            if e.resp.status == 404:
+                # Event not found
+                return None
+            # Re-raise other errors
+            raise
+
+    def update_event(
+        self,
+        calendar_id: str,
+        event_id: str,
+        summary: str | None = None,
+        description: str | None = None,
+        start_date: Any = None,
+        end_date: Any = None,
+        timezone: str = "Asia/Tokyo",
+    ) -> dict[str, Any]:
+        """Update an existing calendar event.
+
+        Args:
+            calendar_id: Calendar ID containing the event
+            event_id: Event ID to update
+            summary: New event title (optional)
+            description: New event description (optional)
+            start_date: New start date (optional)
+            end_date: New end date (optional)
+            timezone: Timezone for the event (default: Asia/Tokyo)
+
+        Returns:
+            Updated event details from Google Calendar API
+
+        Raises:
+            RuntimeError: If event not found or calendar service not initialized
+            HttpError: If API call fails
+        """
+        from datetime import date
+
+        from googleapiclient.errors import HttpError
+
+        service = self.get_service()
+
+        # First, get the existing event
+        try:
+            service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        except HttpError as e:
+            if e.resp.status == 404:
+                raise RuntimeError(f"Event not found: {event_id}") from e
+            raise
+
+        # Build update body with only provided fields
+        update_body: dict[str, Any] = {}
+
+        if summary is not None:
+            update_body["summary"] = summary
+
+        if description is not None:
+            update_body["description"] = description
+
+        if start_date is not None:
+            if isinstance(start_date, date):
+                start_date_str = start_date.isoformat()
+            else:
+                start_date_str = str(start_date)
+            update_body["start"] = {"date": start_date_str, "timeZone": timezone}
+
+        if end_date is not None:
+            if isinstance(end_date, date):
+                end_date_str = end_date.isoformat()
+            else:
+                end_date_str = str(end_date)
+            update_body["end"] = {"date": end_date_str, "timeZone": timezone}
+
+        # Use patch for partial update
+        result = (
+            service.events()
+            .patch(calendarId=calendar_id, eventId=event_id, body=update_body)
+            .execute()
+        )
+        return result  # type: ignore[no-any-return]
