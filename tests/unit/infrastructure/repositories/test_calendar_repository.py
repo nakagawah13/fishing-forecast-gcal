@@ -300,7 +300,7 @@ class TestAPIFormatConversion:
         sample_api_event: dict[str, Any],
     ) -> None:
         """Google API形式 → CalendarEvent 変換"""
-        result = calendar_repository._convert_to_domain_model(sample_api_event)
+        result = calendar_repository._convert_to_domain_model(sample_api_event)  # pyright: ignore[reportPrivateUsage]
 
         assert result.event_id == "abc123"
         assert result.title == "潮汐 横須賀 (大潮)"
@@ -318,7 +318,7 @@ class TestAPIFormatConversion:
         }
 
         with pytest.raises(ValueError, match="Invalid API event format"):
-            calendar_repository._convert_to_domain_model(invalid_event)
+            calendar_repository._convert_to_domain_model(invalid_event)  # pyright: ignore[reportPrivateUsage]
 
     def test_convert_to_domain_model_missing_location_id(
         self,
@@ -330,4 +330,4 @@ class TestAPIFormatConversion:
         invalid_event["extendedProperties"] = {"private": {}}
 
         with pytest.raises(ValueError, match="location_id not found"):
-            calendar_repository._convert_to_domain_model(invalid_event)
+            calendar_repository._convert_to_domain_model(invalid_event)  # pyright: ignore[reportPrivateUsage]
