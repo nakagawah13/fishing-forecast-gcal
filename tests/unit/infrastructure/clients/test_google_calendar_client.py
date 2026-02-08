@@ -68,7 +68,7 @@ class TestGoogleCalendarClient:
         # Arrange
         calendar_id = "test@calendar.com"
         event_id = "test-event-id"
-        summary = "潮汐 横須賀 (大潮)"
+        summary = "🔴横須賀 (大潮)"
         description = "[TIDE]\n満潮: 06:00"
         start_date = date(2026, 2, 8)
         end_date = date(2026, 2, 9)

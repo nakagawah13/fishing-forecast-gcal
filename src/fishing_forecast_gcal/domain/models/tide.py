@@ -25,6 +25,29 @@ class TideType(Enum):
     LONG = "長潮"  # 小潮の翌日、潮の動きが緩慢
     YOUNG = "若潮"  # 長潮の翌日、潮が復活し始める
 
+    def to_emoji(self) -> str:
+        """潮回り種別に対応する絵文字を返す
+
+        カレンダーイベントのタイトルや説明文で視認性を高めるために使用します。
+
+        Returns:
+            潮回りの種別を表す絵文字（1文字）
+
+        Example:
+            >>> TideType.SPRING.to_emoji()
+            '🔴'
+            >>> TideType.NEAP.to_emoji()
+            '🔵'
+        """
+        emoji_map = {
+            TideType.SPRING: "🔴",
+            TideType.MODERATE: "🟠",
+            TideType.NEAP: "🔵",
+            TideType.LONG: "⚪",
+            TideType.YOUNG: "🟢",
+        }
+        return emoji_map[self]
+
 
 @dataclass(frozen=True)
 class TideEvent:

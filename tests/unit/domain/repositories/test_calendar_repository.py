@@ -75,14 +75,14 @@ class TestICalendarRepositoryMock:
         # テストデータ
         event1 = CalendarEvent(
             event_id="event_001",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description="[TIDE]\n- 満潮: 06:12 (162cm)",
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
         )
         event2 = CalendarEvent(
             event_id="event_002",
-            title="潮汐 東京湾 (中潮)",
+            title="🟠東京湾 (中潮)",
             description="[TIDE]\n- 満潮: 07:30 (150cm)",
             date=date(2026, 2, 9),
             location_id="tokyo_bay",
@@ -96,7 +96,7 @@ class TestICalendarRepositoryMock:
         retrieved_event = repository.get_event("event_001")
         assert retrieved_event is not None
         assert retrieved_event.event_id == "event_001"
-        assert retrieved_event.title == "潮汐 東京湾 (大潮)"
+        assert retrieved_event.title == "🔴東京湾 (大潮)"
 
         # 存在しないイベントの取得
         non_existent = repository.get_event("event_999")
@@ -156,7 +156,7 @@ class TestICalendarRepositoryMock:
         # 初回作成
         event = CalendarEvent(
             event_id="event_001",
-            title="潮汐 東京湾 (大潮)",
+            title="🔴東京湾 (大潮)",
             description="[TIDE]\n- 満潮: 06:12 (162cm)",
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -167,7 +167,7 @@ class TestICalendarRepositoryMock:
         # 同じIDで再度upsert（更新）
         updated_event = CalendarEvent(
             event_id="event_001",
-            title="潮汐 東京湾 (中潮)",  # タイトル変更
+            title="🟠東京湾 (中潮)",  # タイトル変更
             description="[TIDE]\n- 満潮: 07:30 (150cm)",  # 内容変更
             date=date(2026, 2, 8),
             location_id="tokyo_bay",
@@ -178,5 +178,5 @@ class TestICalendarRepositoryMock:
         assert len(repository.events) == 1
         retrieved = repository.get_event("event_001")
         assert retrieved is not None
-        assert retrieved.title == "潮汐 東京湾 (中潮)"
+        assert retrieved.title == "🟠東京湾 (中潮)"
         assert "07:30" in retrieved.description

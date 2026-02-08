@@ -37,7 +37,7 @@ def sample_calendar_event() -> CalendarEvent:
     """テスト用の CalendarEvent を作成"""
     return CalendarEvent(
         event_id="abc123",
-        title="潮汐 横須賀 (大潮)",
+        title="🔴横須賀 (大潮)",
         description="[TIDE]\\n- 満潮: 06:12 (162cm)\\n- 干潮: 12:34 (58cm)",
         date=date(2026, 2, 8),
         location_id="yokosuka",
@@ -49,7 +49,7 @@ def sample_api_event() -> dict[str, Any]:
     """テスト用の Google Calendar API 形式のイベントを作成"""
     return {
         "id": "abc123",
-        "summary": "潮汐 横須賀 (大潮)",
+        "summary": "🔴横須賀 (大潮)",
         "description": "[TIDE]\\n- 満潮: 06:12 (162cm)\\n- 干潮: 12:34 (58cm)",
         "start": {"date": "2026-02-08", "timeZone": "Asia/Tokyo"},
         "end": {"date": "2026-02-09", "timeZone": "Asia/Tokyo"},
@@ -76,7 +76,7 @@ class TestGetEvent:
         # 検証
         assert result is not None
         assert result.event_id == "abc123"
-        assert result.title == "潮汐 横須賀 (大潮)"
+        assert result.title == "🔴横須賀 (大潮)"
         assert result.date == date(2026, 2, 8)
         assert result.location_id == "yokosuka"
 
@@ -150,7 +150,7 @@ class TestUpsertEvent:
         call_args = mock_client.create_event.call_args[1]
         assert call_args["calendar_id"] == "test-calendar-id"
         assert call_args["event_id"] == "abc123"
-        assert call_args["summary"] == "潮汐 横須賀 (大潮)"
+        assert call_args["summary"] == "🔴横須賀 (大潮)"
         assert call_args["start_date"] == date(2026, 2, 8)
         assert call_args["end_date"] == date(2026, 2, 9)
         assert call_args["extended_properties"] == {"location_id": "yokosuka"}
@@ -177,7 +177,7 @@ class TestUpsertEvent:
         call_args = mock_client.update_event.call_args[1]
         assert call_args["calendar_id"] == "test-calendar-id"
         assert call_args["event_id"] == "abc123"
-        assert call_args["summary"] == "潮汐 横須賀 (大潮)"
+        assert call_args["summary"] == "🔴横須賀 (大潮)"
         assert call_args["start_date"] == date(2026, 2, 8)
         assert call_args["end_date"] == date(2026, 2, 9)
         assert call_args["extended_properties"] == {"location_id": "yokosuka"}
@@ -243,7 +243,7 @@ class TestAPIFormatConversion:
         result = calendar_repository._convert_to_domain_model(sample_api_event)  # pyright: ignore[reportPrivateUsage]
 
         assert result.event_id == "abc123"
-        assert result.title == "潮汐 横須賀 (大潮)"
+        assert result.title == "🔴横須賀 (大潮)"
         assert result.date == date(2026, 2, 8)
         assert result.location_id == "yokosuka"
 

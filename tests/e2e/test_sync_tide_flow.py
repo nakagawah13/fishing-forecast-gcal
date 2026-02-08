@@ -160,8 +160,9 @@ class TestSyncTideE2E:
         event = calendar_repo.get_event(event_id)
         assert event is not None, "イベントが作成されていません"
 
-        # タイトルの形式検証
-        assert event.title.startswith("潮汐 東京"), f"タイトルが不正: {event.title}"
+        # タイトルの形式検証（絵文字付き新形式）
+        # 絵文字は先頭に来るため、地点名で検証
+        assert "東京" in event.title, f"タイトルに地点名が含まれていません: {event.title}"
         # タイトルに有効な潮回りが含まれることを確認
         tide_type_values = [t.value for t in TideType]
         assert any(t in event.title for t in tide_type_values), (
