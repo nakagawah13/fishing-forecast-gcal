@@ -235,8 +235,10 @@
 
 ---
 
-#### T-008: Google Calendar API クライアント
+#### T-008: Google Calendar API クライアント ✅
 **責務**: Google Calendar API のラッパー
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `infrastructure/clients/google_calendar_client.py`
@@ -245,8 +247,15 @@
   - イベント作成・get・更新API呼び出し
 
 **テスト要件**:
-- Mock APIレスポンスで単体テスト
-- テストカレンダーで統合テスト
+- Mock APIレスポンスで単体テスト ✅
+- テストカレンダーで統合テスト（T-009で実施予定）
+
+**実績**:
+- 3つのCRUDメソッド実装（create/get/update）
+- 単体テスト9件すべてパス
+- カバレッジ57%（実装メソッドは100%）
+- Pylance警告解消済み
+- 詳細: [docs/completed/issue-19.md](completed/issue-19.md)
 
 **依存**: なし
 
