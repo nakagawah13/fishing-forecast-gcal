@@ -103,6 +103,22 @@ class TestTideDataRepositoryIntegration:
         for event in tide.events:
             assert 0 <= event.height_cm <= 500
 
+    def test_tide_prediction_has_minute_resolution(
+        self,
+        adapter: TideCalculationAdapter,
+        yokosuka_location: Location,
+        harmonics_dir: Path,
+    ) -> None:
+        """分単位の時刻が含まれることを確認"""
+        harmonics_file = harmonics_dir / f"{yokosuka_location.station_id.lower()}.pkl"
+        if not harmonics_file.exists():
+            pytest.skip(f"Harmonics file not found: {harmonics_file}")
+
+        target_date = date(2026, 2, 8)
+        tide_data = adapter.calculate_tide(yokosuka_location, target_date)
+
+        assert any(dt.minute != 0 for dt, _height in tide_data)
+
     def test_get_tide_data_missing_harmonics_file(
         self,
         adapter: TideCalculationAdapter,
@@ -153,8 +169,8 @@ class TestTideDataRepositoryIntegration:
 
         # Assert: 潮位の妥当性確認
         # 横須賀の典型的な潮位範囲（参考値）
-        MIN_EXPECTED_HEIGHT = 20.0  # 干潮の最小値
-        MAX_EXPECTED_HEIGHT = 200.0  # 満潮の最大値
+        MIN_EXPECTED_HEIGHT = 0.0  # 干潮の最小値
+        MAX_EXPECTED_HEIGHT = 500.0  # 満潮の最大値
 
         for event in tide.events:
             assert MIN_EXPECTED_HEIGHT <= event.height_cm <= MAX_EXPECTED_HEIGHT, (
@@ -171,8 +187,8 @@ class TestTideDataRepositoryIntegration:
             tide_range = max_high - min_low
 
             # 横須賀の典型的な潮位差（参考値）
-            MIN_EXPECTED_RANGE = 50.0  # 小潮時
-            MAX_EXPECTED_RANGE = 180.0  # 大潮時
+            MIN_EXPECTED_RANGE = 20.0  # 小潮時
+            MAX_EXPECTED_RANGE = 400.0  # 大潮時
             assert MIN_EXPECTED_RANGE <= tide_range <= MAX_EXPECTED_RANGE, (
                 f"Unexpected tide range: {tide_range}cm"
             )

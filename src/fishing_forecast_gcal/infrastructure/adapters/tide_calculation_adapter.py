@@ -37,7 +37,7 @@ class TideCalculationAdapter:
     """
 
     # 予測間隔（分単位）
-    PREDICTION_INTERVAL_MINUTES = 60
+    PREDICTION_INTERVAL_MINUTES = 5
 
     # 予測に使用するpickleファイルの拡張子
     HARMONICS_FILE_EXTENSION = ".pkl"
@@ -73,7 +73,7 @@ class TideCalculationAdapter:
     ) -> list[tuple[datetime, float]]:
         """Calculate tidal heights for a given location and date.
 
-        指定した地点・日付の潮汐予測を1時間刻みで実行し、
+        指定した地点・日付の潮汐予測を分単位で実行し、
         (時刻, 潮位cm) のリストを返します。
 
         Args:
@@ -84,8 +84,8 @@ class TideCalculationAdapter:
 
         Returns:
             list[tuple[datetime, float]]: List of (timezone-aware datetime, height_cm)
-                tuples at hourly intervals (24 data points).
-                (時刻と潮位cmのタプルリスト、1時間刻み24データポイント)
+                tuples at minute intervals (multiple data points).
+                (時刻と潮位cmのタプルリスト、分単位のデータポイント)
 
         Raises:
             FileNotFoundError: If harmonic coefficient file for the location
@@ -97,10 +97,16 @@ class TideCalculationAdapter:
         # 調和定数を読み込み（キャッシュあり）
         coef = self._load_coefficients(location.station_id)
 
-        # 予測時刻の生成（JST、1時間刻み、24時間分）
+        # 予測時刻の生成（JST、分単位、24時間分）
+        minutes_per_day = 24 * 60
+        if minutes_per_day % self.PREDICTION_INTERVAL_MINUTES != 0:
+            raise ValueError(
+                "PREDICTION_INTERVAL_MINUTES は 24時間を割り切れる分数である必要があります"
+            )
+        periods = minutes_per_day // self.PREDICTION_INTERVAL_MINUTES
         predict_times = pd.date_range(
             start=pd.Timestamp(target_date, tz="Asia/Tokyo"),
-            periods=24,
+            periods=periods,
             freq=f"{self.PREDICTION_INTERVAL_MINUTES}min",
         )
 

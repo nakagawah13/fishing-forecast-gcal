@@ -35,6 +35,7 @@ def valid_config_dict() -> dict[str, Any]:
                 "name": "Home",
                 "latitude": 35.0,
                 "longitude": 139.0,
+                "station_id": "TK",
             }
         ],
         "fishing_conditions": {
@@ -95,6 +96,7 @@ class TestLoadConfig:
         assert location.name == "Home"
         assert location.latitude == 35.0
         assert location.longitude == 139.0
+        assert location.station_id == "TK"
 
     def test_fishing_conditions_values(self, temp_config_file: Path) -> None:
         """Test that fishing conditions are correctly parsed."""
@@ -266,6 +268,7 @@ class TestLocationsValidation:
                 "name": "Away",
                 "latitude": 34.5,
                 "longitude": 138.5,
+                "station_id": "KW",
             }
         )
 
