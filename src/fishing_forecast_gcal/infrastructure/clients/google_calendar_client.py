@@ -114,6 +114,7 @@ class GoogleCalendarClient:
         start_date: Any,
         end_date: Any,
         timezone: str = "Asia/Tokyo",
+        extended_properties: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Create a new calendar event.
 
@@ -125,6 +126,7 @@ class GoogleCalendarClient:
             start_date: Event start date (date object)
             end_date: Event end date (date object, exclusive)
             timezone: Timezone for the event (default: Asia/Tokyo)
+            extended_properties: Custom metadata (key-value pairs)
 
         Returns:
             Created event details from Google Calendar API
@@ -155,6 +157,10 @@ class GoogleCalendarClient:
             "start": {"date": start_date_str, "timeZone": timezone},
             "end": {"date": end_date_str, "timeZone": timezone},
         }
+
+        # Add extended properties if provided
+        if extended_properties:
+            event_body["extendedProperties"] = {"private": extended_properties}
 
         result = service.events().insert(calendarId=calendar_id, body=event_body).execute()
         return result  # type: ignore[no-any-return]
@@ -195,6 +201,7 @@ class GoogleCalendarClient:
         start_date: Any = None,
         end_date: Any = None,
         timezone: str = "Asia/Tokyo",
+        extended_properties: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Update an existing calendar event.
 
@@ -206,6 +213,7 @@ class GoogleCalendarClient:
             start_date: New start date (optional)
             end_date: New end date (optional)
             timezone: Timezone for the event (default: Asia/Tokyo)
+            extended_properties: Custom metadata (key-value pairs, optional)
 
         Returns:
             Updated event details from Google Calendar API
@@ -250,6 +258,10 @@ class GoogleCalendarClient:
             else:
                 end_date_str = str(end_date)
             update_body["end"] = {"date": end_date_str, "timeZone": timezone}
+
+        # Add extended properties if provided
+        if extended_properties is not None:
+            update_body["extendedProperties"] = {"private": extended_properties}
 
         # Use patch for partial update
         result = (
