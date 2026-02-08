@@ -42,6 +42,26 @@ class ICalendarRepository(ABC):
         ...
 
     @abstractmethod
+    def generate_event_id_for_location_date(self, location_id: str, target_date: date) -> str:
+        """location_id と target_date から event_id を生成
+
+        内部のcalendar_idを使用してevent_idを生成します。
+        UseCaseから呼び出すための便利なインスタンスメソッドです。
+
+        Args:
+            location_id: 地点の不変ID
+            target_date: 対象日
+
+        Returns:
+            str: イベントID（MD5ハッシュ、32文字）
+
+        Note:
+            具体的な実装では、calendar_id + location_id + date を素材に
+            MD5ハッシュで安定IDを生成します。
+        """
+        ...
+
+    @abstractmethod
     def upsert_event(self, event: CalendarEvent) -> None:
         """カレンダーイベントを作成または更新（冪等操作）
 
