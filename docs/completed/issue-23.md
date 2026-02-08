@@ -55,7 +55,8 @@ fishing-forecast-gcal sync-tide \
 | `--config` | `-c` | `config/config.yaml` | 設定ファイルのパス |
 | `--location-id` | `-l` | 全地点 | 対象地点ID（省略時は設定ファイルの全地点を処理） |
 | `--start-date` | - | 今日 | 開始日（YYYY-MM-DD形式） |
-| `--end-date` | - | 設定値に基づく | 終了日（YYYY-MM-DD形式） |
+| `--end-date` | - | 設定値に基づく | 終了日（YYYY-MM-DD形式、`--days` と排他） |
+| `--days` | `-d` | 設定値に基づく | 同期日数（`--end-date` と排他、>= 1） |
 | `--dry-run` | - | False | 実際には登録せず、処理内容のみ表示 |
 | `--verbose` | `-v` | False | 詳細ログ出力 |
 
@@ -212,7 +213,9 @@ fishing-forecast-gcal sync-tide \
 - **概要**: argparseを使用したCLIエントリーポイントの実装
 - **機能**:
   - サブコマンド `sync-tide` の実装
-  - コマンドラインオプション（`--config`, `--location-id`, `--start-date`, `--end-date`, `--dry-run`, `--verbose`）のサポート
+  - コマンドラインオプション（`--config`, `--location-id`, `--start-date`, `--end-date`, `--days`, `--dry-run`, `--verbose`）のサポート
+  - `--days` と `--end-date` の排他チェック
+  - `--days` の値バリデーション（>= 1）
   - 依存オブジェクトの構築（DI）
   - SyncTideUseCaseの呼び出しとエラーハンドリング
   - ユーザーフレンドリーなログ出力（標準loggingモジュール使用）
@@ -225,18 +228,19 @@ fishing-forecast-gcal sync-tide \
 - **概要**: CLI単体テスト（13件）
 - **テスト内容**:
   - ロギング設定テスト（2件）
-  - 引数パーステスト（3件）
+  - 引数パーステスト（8件）
   - 日付パーステスト（3件）
-  - メイン処理の統合テスト（5件）
+  - メイン処理の統合テスト（6件）
     - 基本フロー
     - 設定ファイル不在エラー
     - 地点ID不在エラー
     - dry-runモード
     - ユーザー中断
-- **カバレッジ**: 90%（cli.py）
+    - `--days` オプションによる期間算出
+- **カバレッジ**: 91%（cli.py）
 
 ### テスト結果
-- **単体テスト**: 13件すべてパス
+- **単体テスト**: 19件すべてパス
 - **全体テスト**: 204件パス、3件スキップ
 - **カバレッジ**: 92%（全体）
 
@@ -259,6 +263,8 @@ fishing-forecast-gcal sync-tide \
 - 設定ファイル不在: 適切なエラーメッセージと終了コード1
 - 地点ID不在: 利用可能な地点IDを表示して終了コード1
 - 開始日 > 終了日: エラーメッセージと終了コード1
+- `--days` と `--end-date` の同時指定: 排他エラーと終了コード2
+- `--days` に 0 以下の値: バリデーションエラーと終了コード2
 - ユーザー中断（Ctrl+C）: 終了コード130
 - 予期しない例外: スタックトレースを表示して終了コード1
 
@@ -289,4 +295,10 @@ fishing-forecast-gcal sync-tide \
    - CLI実装とテスト追加
 2. `style: fix linting and type errors` (67a56c8)
    - 不要なインポート削除、型エラー修正
+3. `fix(cli): add --days option to sync-tide command` (7c69fce)
+   - `--days/-d` オプション追加（README quickstart との整合）
+4. `fix(cli): add mutual exclusion and validation for --days option`
+   - `--days` と `--end-date` の排他チェック追加
+   - `--days` の値バリデーション（>= 1）追加
+   - テスト6件追加（合計19件）
 

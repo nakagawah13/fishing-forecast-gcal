@@ -48,6 +48,7 @@ class TestParseArgs:
         assert args.location_id is None
         assert args.start_date is None
         assert args.end_date is None
+        assert args.days is None
         assert args.dry_run is False
         assert args.verbose is False
 
@@ -79,6 +80,42 @@ class TestParseArgs:
         assert args.end_date == "2026-03-08"
         assert args.dry_run is True
         assert args.verbose is True
+
+    def test_parse_args_sync_tide_days_option(self) -> None:
+        """--days オプションの指定"""
+        with patch("sys.argv", ["prog", "sync-tide", "--days", "30"]):
+            args = parse_args()
+
+        assert args.days == 30
+        assert args.end_date is None
+
+    def test_parse_args_sync_tide_days_short_option(self) -> None:
+        """--days の短縮形 -d の指定"""
+        with patch("sys.argv", ["prog", "sync-tide", "-d", "7"]):
+            args = parse_args()
+
+        assert args.days == 7
+
+    def test_parse_args_days_and_end_date_mutually_exclusive(self) -> None:
+        """--days と --end-date の同時指定でエラー"""
+        with patch(
+            "sys.argv",
+            ["prog", "sync-tide", "--days", "7", "--end-date", "2026-03-08"],
+        ):
+            with pytest.raises(SystemExit):
+                parse_args()
+
+    def test_parse_args_days_zero_error(self) -> None:
+        """--days 0 でエラー"""
+        with patch("sys.argv", ["prog", "sync-tide", "--days", "0"]):
+            with pytest.raises(SystemExit):
+                parse_args()
+
+    def test_parse_args_days_negative_error(self) -> None:
+        """--days に負の値でエラー"""
+        with patch("sys.argv", ["prog", "sync-tide", "--days", "-5"]):
+            with pytest.raises(SystemExit):
+                parse_args()
 
     def test_parse_args_no_subcommand(self) -> None:
         """サブコマンドなしでエラー"""
@@ -138,6 +175,7 @@ class TestMain:
         mock_args.location_id = None
         mock_args.start_date = "2026-02-08"
         mock_args.end_date = "2026-02-09"
+        mock_args.days = None
         mock_args.dry_run = False
         mock_args.verbose = False
         mock_parse_args.return_value = mock_args
@@ -284,6 +322,7 @@ class TestMain:
         mock_args.location_id = None
         mock_args.start_date = "2026-02-08"
         mock_args.end_date = "2026-02-08"
+        mock_args.days = None
         mock_args.dry_run = True
         mock_args.verbose = False
         mock_parse_args.return_value = mock_args
@@ -336,3 +375,77 @@ class TestMain:
             main()
 
         assert exc_info.value.code == 130
+
+    @patch("fishing_forecast_gcal.presentation.cli.parse_args")
+    @patch("fishing_forecast_gcal.presentation.cli.setup_logging")
+    @patch("fishing_forecast_gcal.presentation.cli.load_config")
+    @patch("fishing_forecast_gcal.presentation.cli.GoogleCalendarClient")
+    @patch("fishing_forecast_gcal.presentation.cli.TideCalculationAdapter")
+    @patch("fishing_forecast_gcal.presentation.cli.TideDataRepository")
+    @patch("fishing_forecast_gcal.presentation.cli.CalendarRepository")
+    @patch("fishing_forecast_gcal.presentation.cli.SyncTideUseCase")
+    @patch("fishing_forecast_gcal.presentation.cli.Path")
+    def test_main_days_option_calculates_end_date(
+        self,
+        mock_path: Mock,
+        mock_usecase_class: Mock,
+        mock_calendar_repo_class: Mock,
+        mock_tide_repo_class: Mock,
+        mock_tide_adapter_class: Mock,
+        mock_calendar_client_class: Mock,
+        mock_load_config: Mock,
+        mock_setup_logging: Mock,
+        mock_parse_args: Mock,
+    ) -> None:
+        """--days オプションから end_date が正しく算出されること"""
+        # 引数の設定（--days=3, start_date=2026-02-08 → 2/8, 2/9, 2/10 の3日間）
+        mock_args = Mock()
+        mock_args.command = "sync-tide"
+        mock_args.config = "config/config.yaml"
+        mock_args.location_id = None
+        mock_args.start_date = "2026-02-08"
+        mock_args.end_date = None
+        mock_args.days = 3
+        mock_args.dry_run = False
+        mock_args.verbose = False
+        mock_parse_args.return_value = mock_args
+
+        # 設定ファイルのMock
+        mock_config_path = Mock()
+        mock_config_path.exists.return_value = True
+        mock_path.return_value = mock_config_path
+
+        mock_location = Mock()
+        mock_location.id = "test_loc"
+        mock_location.name = "Test Location"
+
+        mock_settings = Mock()
+        mock_settings.timezone = "Asia/Tokyo"
+        mock_settings.calendar_id = "test-calendar-id-12345"
+        mock_settings.tide_register_months = 1
+        mock_settings.google_credentials_path = "creds.json"
+        mock_settings.google_token_path = "token.json"
+
+        mock_config = Mock()
+        mock_config.settings = mock_settings
+        mock_config.locations = [mock_location]
+        mock_load_config.return_value = mock_config
+
+        # クライアント・リポジトリのMock
+        mock_calendar_client = Mock()
+        mock_calendar_client_class.return_value = mock_calendar_client
+
+        mock_tide_repo = Mock()
+        mock_tide_repo_class.return_value = mock_tide_repo
+
+        mock_calendar_repo = Mock()
+        mock_calendar_repo_class.return_value = mock_calendar_repo
+
+        mock_usecase = Mock()
+        mock_usecase_class.return_value = mock_usecase
+
+        # 実行
+        main()
+
+        # 検証: 3日分（2026-02-08, 2026-02-09, 2026-02-10）
+        assert mock_usecase.execute.call_count == 3

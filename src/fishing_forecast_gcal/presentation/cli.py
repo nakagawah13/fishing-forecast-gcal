@@ -88,7 +88,7 @@ def parse_args() -> argparse.Namespace:
         "--days",
         "-d",
         type=int,
-        help="Number of days to sync from start date (alternative to --end-date)",
+        help="Number of days to sync from start date (mutually exclusive with --end-date)",
     )
 
     sync_tide_parser.add_argument(
@@ -104,7 +104,17 @@ def parse_args() -> argparse.Namespace:
         help="Enable verbose logging",
     )
 
-    return parser.parse_args()
+    parsed = parser.parse_args()
+
+    # --days と --end-date の排他チェック
+    if parsed.command == "sync-tide" and parsed.days is not None and parsed.end_date is not None:
+        parser.error("--days and --end-date are mutually exclusive")
+
+    # --days の値バリデーション
+    if parsed.command == "sync-tide" and parsed.days is not None and parsed.days < 1:
+        parser.error("--days must be a positive integer (>= 1)")
+
+    return parsed
 
 
 def parse_date(date_str: str) -> date:
@@ -174,8 +184,7 @@ def main() -> None:
 
         if args.end_date:
             end_date = parse_date(args.end_date)
-        elif args.days:
-            # --days オプションが指定されている場合
+        elif args.days is not None:
             end_date = start_date + timedelta(days=args.days - 1)
         else:
             # 設定ファイルの tide_register_months に基づいて計算
