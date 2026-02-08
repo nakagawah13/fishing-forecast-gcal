@@ -29,7 +29,7 @@ class TideCalculationAdapter:
     """Tide calculation adapter using UTide harmonic analysis.
 
     UTideライブラリの調和定数を使用して潮汐予測を実行するアダプター。
-    調和定数はpickleファイルとして保存され、地点ID（location_id）で管理されます。
+    調和定数はpickleファイルとして保存され、観測地点コード（station_id）で管理されます。
 
     Attributes:
         harmonics_dir (Path): Directory containing harmonic coefficient files.
@@ -95,7 +95,7 @@ class TideCalculationAdapter:
                           (潮汐予測の計算に失敗した場合)
         """
         # 調和定数を読み込み（キャッシュあり）
-        coef = self._load_coefficients(location.id)
+        coef = self._load_coefficients(location.station_id)
 
         # 予測時刻の生成（JST、1時間刻み、24時間分）
         predict_times = pd.date_range(
@@ -112,7 +112,8 @@ class TideCalculationAdapter:
             )
         except Exception as e:
             raise RuntimeError(
-                f"潮汐予測の計算に失敗しました (地点: {location.id}, 日付: {target_date}): {e}"
+                f"潮汐予測の計算に失敗しました (地点: {location.id}, 観測点: {location.station_id}, "
+                f"日付: {target_date}): {e}"
             ) from e
 
         # 結果をリストに変換
@@ -127,23 +128,24 @@ class TideCalculationAdapter:
             result.append((aware_dt, absolute_height))
 
         logger.info(
-            "潮汐予測完了: 地点=%s, 日付=%s, データ数=%d",
+            "潮汐予測完了: 地点=%s, 観測点=%s, 日付=%s, データ数=%d",
             location.id,
+            location.station_id,
             target_date,
             len(result),
         )
 
         return result
 
-    def _load_coefficients(self, location_id: str) -> UTideCoefficients:
+    def _load_coefficients(self, station_id: str) -> UTideCoefficients:
         """Load harmonic coefficients from pickle file with caching.
 
         調和定数をpickleファイルから読み込みます。
         一度読み込んだ調和定数はキャッシュに保持し、再利用します。
 
         Args:
-            location_id (str): Location identifier matching the pickle filename.
-                               (pickleファイル名に対応する地点ID)
+            station_id (str): Station identifier matching the pickle filename.
+                              (pickleファイル名に対応する観測地点コード)
 
         Returns:
             UTideCoefficients: UTide harmonic coefficients (Bunch object).
@@ -155,18 +157,20 @@ class TideCalculationAdapter:
             RuntimeError: If the pickle file is corrupted or has invalid format.
                           (pickleファイルが破損・不正な場合)
         """
+        station_key = station_id.strip().lower()
+
         # キャッシュチェック
-        if location_id in self._coef_cache:
-            logger.debug("キャッシュから調和定数を取得: %s", location_id)
-            return self._coef_cache[location_id]
+        if station_key in self._coef_cache:
+            logger.debug("キャッシュから調和定数を取得: %s", station_key)
+            return self._coef_cache[station_key]
 
         # ファイルパスの構築
-        coef_path = self._harmonics_dir / f"{location_id}{self.HARMONICS_FILE_EXTENSION}"
+        coef_path = self._harmonics_dir / f"{station_key}{self.HARMONICS_FILE_EXTENSION}"
 
         if not coef_path.exists():
             raise FileNotFoundError(
                 f"調和定数ファイルが見つかりません: {coef_path}. "
-                f"地点 '{location_id}' の調和解析を事前に実行してください。"
+                f"観測点 '{station_id}' の調和解析を事前に実行してください。"
             )
 
         try:
@@ -176,13 +180,13 @@ class TideCalculationAdapter:
             raise RuntimeError(f"調和定数ファイルの読み込みに失敗しました: {coef_path}: {e}") from e
 
         # 最低限の妥当性チェック
-        self._validate_coefficients(coef, location_id)
+        self._validate_coefficients(coef, station_id)
 
         # キャッシュに保持
-        self._coef_cache[location_id] = coef
+        self._coef_cache[station_key] = coef
         logger.info(
-            "調和定数を読み込みました: 地点=%s, 分潮数=%d",
-            location_id,
+            "調和定数を読み込みました: 観測点=%s, 分潮数=%d",
+            station_id,
             len(coef.get("name", [])),
         )
 
@@ -191,7 +195,7 @@ class TideCalculationAdapter:
     def _validate_coefficients(
         self,
         coef: UTideCoefficients,
-        location_id: str,
+        station_id: str,
     ) -> None:
         """Validate that loaded coefficients have required fields.
 
@@ -200,8 +204,8 @@ class TideCalculationAdapter:
         Args:
             coef (UTideCoefficients): Loaded coefficient data.
                                       (読み込まれた調和定数)
-            location_id (str): Location identifier for error messages.
-                               (エラーメッセージ用の地点ID)
+            station_id (str): Station identifier for error messages.
+                              (エラーメッセージ用の観測地点コード)
 
         Raises:
             RuntimeError: If required fields are missing.
@@ -212,7 +216,7 @@ class TideCalculationAdapter:
         if missing:
             raise RuntimeError(
                 f"調和定数ファイルに必須フィールドが不足しています "
-                f"(地点: {location_id}): {missing}. "
+                f"(観測点: {station_id}): {missing}. "
                 f"UTide solve() で生成された正しいcoefを使用してください。"
             )
 

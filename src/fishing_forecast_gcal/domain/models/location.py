@@ -1,7 +1,7 @@
-"""地点情報関連のドメインモデル
+"""地点情報関連のドメインモデル.
 
 このモジュールは釣行地点に関する情報を定義します。
-- Location: 地点の不変ID、名称、緯度・経度
+- Location: 地点の不変ID、名称、緯度・経度、観測地点コード
 """
 
 from dataclasses import dataclass
@@ -9,16 +9,18 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Location:
-    """釣行地点の情報
+    """釣行地点の情報.
 
     設定ファイルで定義される釣行地点の情報を表現します。
     `id` は不変IDであり、表示名（`name`）が変更されてもイベントIDが変わらないようにします。
+    `station_id` は気象庁の観測地点コードで、潮汐計算の調和定数と対応します。
 
     Attributes:
         id: 不変ID（config.yamlの locations[].id）
         name: 表示名（例: "東京湾", "相模湾"）
         latitude: 緯度（-90 ~ 90の範囲）
         longitude: 経度（-180 ~ 180の範囲）
+        station_id: 気象庁の観測地点コード（例: "TK"）
 
     Raises:
         ValueError: バリデーションエラー時
@@ -31,9 +33,14 @@ class Location:
     name: str
     latitude: float
     longitude: float
+    station_id: str
 
     def __post_init__(self) -> None:
-        """インスタンス化後のバリデーション"""
+        """インスタンス化後のバリデーション.
+
+        Raises:
+            ValueError: 必須項目が欠けている、または値が不正な場合。
+        """
         # idの検証
         if not self.id or not self.id.strip():
             raise ValueError("id must not be empty")
@@ -49,3 +56,7 @@ class Location:
         # 経度の範囲チェック
         if not (-180 <= self.longitude <= 180):
             raise ValueError(f"longitude must be between -180 and 180, got {self.longitude}")
+
+        # 観測地点コードの検証
+        if not self.station_id or not self.station_id.strip():
+            raise ValueError("station_id must not be empty")

@@ -207,6 +207,7 @@ def _parse_locations(locations_list: list[dict[str, Any]]) -> list[Location]:
                 name=str(loc_dict["name"]),
                 latitude=float(loc_dict["latitude"]),
                 longitude=float(loc_dict["longitude"]),
+                station_id=str(loc_dict["station_id"]),
             )
             locations.append(location)
         except KeyError as e:

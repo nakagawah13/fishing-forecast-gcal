@@ -61,7 +61,13 @@ class TestIWeatherRepositoryMock:
         repository = MockWeatherRepository()
 
         # 動作確認
-        location = Location(id="tokyo_bay", name="東京湾", latitude=35.6, longitude=139.8)
+        location = Location(
+            id="tokyo_bay",
+            name="東京湾",
+            latitude=35.6,
+            longitude=139.8,
+            station_id="TK",
+        )
         target_date = date(2026, 2, 8)
         condition = repository.get_forecast(location, target_date)
 
@@ -89,7 +95,13 @@ class TestIWeatherRepositoryMock:
         repository = MockWeatherRepositoryNoForecast()
 
         # 動作確認
-        location = Location(id="tokyo_bay", name="東京湾", latitude=35.6, longitude=139.8)
+        location = Location(
+            id="tokyo_bay",
+            name="東京湾",
+            latitude=35.6,
+            longitude=139.8,
+            station_id="TK",
+        )
         target_date = date(2026, 2, 8)
         condition = repository.get_forecast(location, target_date)
 

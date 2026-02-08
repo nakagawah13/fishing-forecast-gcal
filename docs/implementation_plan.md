@@ -428,6 +428,37 @@
 
 ---
 
+#### T-013.1: station_id マッピングの導入 ✅
+**責務**: 釣行地点IDと観測地点コードを分離し、調和定数の参照を安定化
+
+**ステータス**: ✅ 完了（2026-02-08）
+
+**成果物**:
+- `domain/models/location.py`
+  - `station_id` 追加とバリデーション
+- `presentation/config_loader.py`
+  - `locations[].station_id` を必須化
+- `infrastructure/adapters/tide_calculation_adapter.py`
+  - 調和定数参照を `station_id` に統一
+  - 調和定数ファイル名の小文字正規化
+- `config/config.yaml.template`
+  - `station_id` サンプル追加
+- テスト更新（unit/integration/e2e）
+- ドキュメント更新
+  - `docs/潮位データ：推算値と実測値の違い.md`
+
+**テスト要件**:
+- `Location` バリデーションの更新
+- `station_id` を含むテストデータ整合性の確認
+- 調和定数参照キーの一致
+
+**依存**: T-001, T-006, T-011, T-013
+
+**実装完了**: 2026-02-08
+- ドキュメント: [docs/completed/t-0131-station-id-mapping.md](./completed/t-0131-station-id-mapping.md)
+
+---
+
 ## フェーズ 1 の成果物
 - 1か月分の潮汐イベントを生成・登録できる（画像なし）
 - レイヤードアーキテクチャで実装され、各層が独立してテスト可能
