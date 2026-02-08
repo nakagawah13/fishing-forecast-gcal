@@ -150,7 +150,7 @@ class GoogleCalendarClient:
         else:
             end_date_str = str(end_date)
 
-        event_body = {
+        event_body: dict[str, Any] = {
             "id": event_id,
             "summary": summary,
             "description": description,

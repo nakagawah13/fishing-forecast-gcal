@@ -192,7 +192,9 @@ class CalendarRepository(ICalendarRepository):
             location_id = private_props.get("location_id", "")
 
             if not location_id:
-                raise ValueError(f"location_id not found in extendedProperties for event {event_id}")
+                raise ValueError(
+                    f"location_id not found in extendedProperties for event {event_id}"
+                )
 
             return CalendarEvent(
                 event_id=event_id,
