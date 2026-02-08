@@ -1,41 +1,61 @@
-# Issue 54: fix(tide): ensure daily high/low events
+# Issue #54: fix(tide): ensure daily high/low events (reopen)
 
-## Status
+## ステータス
 - Completed
 
-## Background
+## 背景
 1日あたり満潮2回・干潮2回が原則だが、一部の日で片側が欠落する。
-TideCalculationService の極値抽出条件やサンプリング間隔の影響が疑われる。
+前回修正後も再現があり、2026-02-18 (川崎) で干潮2回目が欠落した。
 
-## Scope
-- TideCalculationService の極値抽出ロジックを調査・改善する
-- 欠落が発生する条件を特定し、再現テストを追加する
-- 30日分で満干潮が2回ずつ抽出されることを確認する
-- 例外（満干潮が1回の条件）がある場合は明文化する
+## 再現情報
+- 日付: 2026-02-18
+- 地点: 川崎
+- 気象庁データ: https://www.data.jma.go.jp/kaiyou/data/db/tide/suisan/txt/2026/KW.txt
+- 公式時刻
+  - 満潮1: 06:01
+  - 満潮2: 17:20
+  - 干潮1: 11:43
+  - 干潮2: 23:59
+- 本ツール出力
+  - 満潮1: 06:00
+  - 満潮2: 17:20
+  - 干潮1: 11:50
+  - 干潮2: なし
 
-## Implementation Plan
-1. 既存テストとロジックを確認し、欠落条件を再現する
-2. 極値抽出の探索窓/条件を見直し、欠落を防ぐ
-3. 再現テストを追加し、30日分の抽出結果を検証する
-4. 例外条件がある場合はドキュメント化する
+## 目的 / 期待値
+- 1日あたり原則2回の満潮・干潮が抽出されること
+- 欠落が起きる条件が特定され、再現テストが追加されること
+- 例外条件がある場合はドキュメント化されること
 
-## Files To Update
+## 実装方針
+1. 2026-02-18 川崎の欠落を再現するユニットテストを追加する
+2. 抽出ロジックの境界条件 (日付境界、フラット区間、終端近傍) を確認する
+3. 必要に応じて探索窓/閾値/サンプリング間隔の補正を行う
+4. 欠落が避けられないケースは明文化する
+
+## 変更予定ファイル
 - src/fishing_forecast_gcal/domain/services/tide_calculation_service.py
 - tests/unit/domain/services/test_tide_calculation_service.py
 - tests/integration (必要に応じて)
-- docs/implementation_plan.md (進捗更新)
+- docs/implementation_plan.md
 
-## Validation Plan
+## 検証計画
 - uv run ruff format .
 - uv run ruff check .
 - uv run pyright
 - uv run pytest
 
-## Notes
-- 公式潮見表との差分がある日付を特定し、再現条件として採用する
-- 欠落が避けられない例外条件は明示し、テストに反映する
+## 実装メモ
+- 欠落が日付境界付近 (23:59) で起きているため、日次境界の処理を重点確認する
+- 終端側の極値検出条件 (前後点の比較) とサンプリング間隔の影響を検証する
 
 ## 実装結果・変更点
-- 満干潮の極値検出でフラット区間（同一潮位が連続する区間）を考慮
-- 30日分の安定波形で日次2回ずつの満干潮抽出を検証するテストを追加
-- 極値抽出テストの追加と docstring 形式の統一
+- 潮汐予測の時刻列に日付境界の補助点を追加し、終端側の極値欠落を抑制
+- 日付境界付近の干潮検出を確認するユニットテストを追加
+- アダプタ側テストを補助点込みの期待値に更新
+
+## 実行した検証
+- uv run ruff format .
+- uv run ruff check .
+- uv run pyright
+- uv run pytest
