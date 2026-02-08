@@ -370,20 +370,37 @@
 
 ---
 
-#### T-012: CLIエントリーポイント
+#### T-012: CLIエントリーポイント ✅
 **責務**: コマンドラインインターフェース
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `presentation/cli.py`
   - 引数パース（argparse）
-  - SyncTideUseCaseの呼び出し
-  - ログ出力
+  - サブコマンド `sync-tide` の実装
+  - コマンドラインオプション（`--config`, `--location-id`, `--start-date`, `--end-date`, `--dry-run`, `--verbose`）
+  - 依存オブジェクトの構築（DI）
+  - SyncTideUseCaseの呼び出しとエラーハンドリング
+  - ユーザーフレンドリーなログ出力
 
 **テスト要件**:
-- CLI引数のパーステスト
-- Mock UseCaseで呼び出し確認
+- CLI引数のパーステスト ✅
+- Mock UseCaseで呼び出し確認 ✅
+  
+**実績**:
+- 単体テスト13件すべてパス
+- カバレッジ90%（cli.py）
+- サブコマンド方式でフェーズ2での拡張に対応
+- dry-runモードサポート
+- 詳細: [docs/completed/issue-23.md](./completed/issue-23.md)
 
 **依存**: T-010, T-011
+
+**実装完了**: 2026-02-08
+- Issue #23 にて実装
+- 単体テスト 13件、全体カバレッジ92%
+- ドキュメント: [docs/completed/issue-23.md](./completed/issue-23.md)
 
 ---
 
