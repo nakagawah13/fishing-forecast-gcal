@@ -44,7 +44,7 @@
 | T-012 | 1.4 | CLI エントリーポイント | [implementation_plan.md](implementation_plan.md#t-012-cliエントリーポイント) | [#23](https://github.com/nakagawah13/fishing-forecast-gcal/issues/23) | ✅ Completed |
 | T-013 | 1.5 | E2E テスト | [implementation_plan.md](implementation_plan.md#t-013-e2eテスト) | [#24](https://github.com/nakagawah13/fishing-forecast-gcal/issues/24) | ✅ Completed |
 | T-013.1 | 1.5 | station_id マッピングの導入 ([doc](completed/t-0131-station-id-mapping.md)) | [implementation_plan.md](implementation_plan.md#t-0131-station_id-マッピングの導入) | N/A | ✅ Completed |
-| T-013.2 | 1.6 | 分単位の潮汐時刻精度改善 | [implementation_plan.md](implementation_plan.md#t-0132-分単位の潮汐時刻精度改善) | [#53](https://github.com/nakagawah13/fishing-forecast-gcal/issues/53) | Not Started |
+| T-013.2 | 1.6 | 分単位の潮汐時刻精度改善 | [implementation_plan.md](implementation_plan.md#t-0132-分単位の潮汐時刻精度改善) | [#53](https://github.com/nakagawah13/fishing-forecast-gcal/issues/53) | ✅ Completed |
 | T-013.3 | 1.6 | 満干潮の欠落調査と修正 | [implementation_plan.md](implementation_plan.md#t-0133-満干潮の欠落調査と修正) | [#54](https://github.com/nakagawah13/fishing-forecast-gcal/issues/54) | Not Started |
 | T-013.4 | 1.6 | 潮位基準面の説明と補正方針 | [implementation_plan.md](implementation_plan.md#t-0134-潮位基準面の説明と補正方針) | [#55](https://github.com/nakagawah13/fishing-forecast-gcal/issues/55) | Not Started |
 | T-013.5 | 1.6 | 潮回り期間中央日のマーカー | [implementation_plan.md](implementation_plan.md#t-0135-潮回り期間中央日のマーカー) | [#57](https://github.com/nakagawah13/fishing-forecast-gcal/issues/57) | Not Started |
