@@ -50,8 +50,9 @@ logger = logging.getLogger(__name__)
 
 # JMA data URL templates
 # 観測潮位（確定値）: 毎時潮位テキストファイル
+# Note: 2025年頃に /gmd/kaiyou/ → /kaiyou/ へパス変更された
 JMA_OBS_URL_TEMPLATE = (
-    "https://www.data.jma.go.jp/gmd/kaiyou/data/db/tide/genbo"
+    "https://www.data.jma.go.jp/kaiyou/data/db/tide/genbo"
     "/{year}/{year}{month:02d}/hry{year}{month:02d}{station}.txt"
 )
 
@@ -148,7 +149,10 @@ def parse_jma_hourly_text(text: str, station_id: str) -> list[tuple[datetime, fl
     # 行単位でもバイト列でも対応
 
     # 改行がある場合は行ごとに処理
-    lines = text.strip().split("\n") if "\n" in text else []
+    # Note: strip() ではなく strip("\n\r") を使用。
+    # JMA の固定長フォーマットでは行頭のスペースがカラム位置に影響するため、
+    # スペースを除去してはいけない。
+    lines = text.strip("\n\r").split("\n") if "\n" in text else []
 
     if lines:
         raw_lines = lines
@@ -275,7 +279,7 @@ def fetch_and_parse_observation_data(
     """
     all_data: list[tuple[datetime, float]] = []
 
-    with httpx.Client() as client:
+    with httpx.Client(follow_redirects=True) as client:
         for month in months:
             try:
                 text = fetch_monthly_data(station_id, year, month, client)
