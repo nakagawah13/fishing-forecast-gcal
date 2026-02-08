@@ -1,7 +1,7 @@
 """TideCalculationAdapter のユニットテスト"""
 
 import pickle
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -118,7 +118,7 @@ class TestCalculateTide:
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 8))
 
-        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES + 2
         assert len(result) == expected_points
 
     def test_returns_timezone_aware_datetimes(
@@ -162,13 +162,20 @@ class TestCalculateTide:
         harmonics_dir: Path,
         tokyo_bay_location: Location,
     ) -> None:
-        """JSTの0時から始まること."""
+        """日付境界の補助点を含むこと."""
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 8))
 
         first_dt = result[0][0]
-        assert first_dt.hour == 0
-        assert first_dt.minute == 0
+        interval_minutes = adapter.PREDICTION_INTERVAL_MINUTES
+        expected_start = datetime(2026, 2, 8, 0, 0, tzinfo=JST) - timedelta(
+            minutes=interval_minutes
+        )
+        assert first_dt == expected_start
+
+        midnight_dt = result[1][0]
+        assert midnight_dt.hour == 0
+        assert midnight_dt.minute == 0
 
     def test_heights_are_realistic(
         self,
@@ -219,7 +226,7 @@ class TestCalculateTide:
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2020, 1, 1))
 
-        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES + 2
         assert len(result) == expected_points
 
     def test_future_date_works(
@@ -231,7 +238,7 @@ class TestCalculateTide:
         adapter = TideCalculationAdapter(harmonics_dir)
         result = adapter.calculate_tide(tokyo_bay_location, date(2030, 12, 31))
 
-        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES + 2
         assert len(result) == expected_points
 
     def test_unknown_location_raises_file_not_found(
@@ -270,7 +277,7 @@ class TestCoefficientsCache:
         # pickleファイルを削除しても2回目は成功（キャッシュ使用）
         (harmonics_dir / "tokyo_bay.pkl").unlink()
         result = adapter.calculate_tide(tokyo_bay_location, date(2026, 2, 9))
-        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES + 2
         assert len(result) == expected_points
 
     def test_clear_cache(
@@ -397,7 +404,7 @@ class TestGenerateHarmonics:
         )
         result = adapter.calculate_tide(location, date(2026, 2, 8))
 
-        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES
+        expected_points = (24 * 60) // adapter.PREDICTION_INTERVAL_MINUTES + 2
         assert len(result) == expected_points
 
     def test_insufficient_data_raises_value_error(self, tmp_path: Path) -> None:

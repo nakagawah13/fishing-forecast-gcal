@@ -75,6 +75,7 @@ class TideCalculationAdapter:
 
         指定した地点・日付の潮汐予測を分単位で実行し、
         (時刻, 潮位cm) のリストを返します。
+        日付境界の極値検出を補助するため、前後に1区間ずつ補助点を追加します。
 
         Args:
             location (Location): Target location with id, lat, lon.
@@ -97,17 +98,19 @@ class TideCalculationAdapter:
         # 調和定数を読み込み（キャッシュあり）
         coef = self._load_coefficients(location.station_id)
 
-        # 予測時刻の生成（JST、分単位、24時間分）
+        # 予測時刻の生成（JST、分単位、日付境界の補助点を含む）
         minutes_per_day = 24 * 60
-        if minutes_per_day % self.PREDICTION_INTERVAL_MINUTES != 0:
+        interval_minutes = self.PREDICTION_INTERVAL_MINUTES
+        if minutes_per_day % interval_minutes != 0:
             raise ValueError(
                 "PREDICTION_INTERVAL_MINUTES は 24時間を割り切れる分数である必要があります"
             )
-        periods = minutes_per_day // self.PREDICTION_INTERVAL_MINUTES
+        periods = minutes_per_day // interval_minutes
+        interval_delta = pd.Timedelta(minutes=interval_minutes)
         predict_times = pd.date_range(
-            start=pd.Timestamp(target_date, tz="Asia/Tokyo"),
-            periods=periods,
-            freq=f"{self.PREDICTION_INTERVAL_MINUTES}min",
+            start=pd.Timestamp(target_date, tz="Asia/Tokyo") - interval_delta,
+            periods=periods + 2,
+            freq=f"{interval_minutes}min",
         )
 
         try:

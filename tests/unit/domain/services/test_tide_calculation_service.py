@@ -267,6 +267,29 @@ class TestTideCalculationService:
         assert result[1].time == base_time.replace(hour=9)
         assert result[1].event_type == "low"
 
+    def test_extract_high_low_tides_detects_end_boundary_low(self) -> None:
+        """Detect a low tide near the day boundary.
+
+        日付境界付近の干潮が欠落しないことを確認します。
+        """
+        # Arrange: 終端側の極値が境界近くにあるケース
+        base_time = datetime(2026, 2, 18, 23, 45, 0, tzinfo=UTC)
+        data = [
+            (base_time.replace(minute=45), 80.0),
+            (base_time.replace(minute=50), 70.0),
+            (base_time.replace(minute=55), 60.0),  # 干潮
+            (base_time + timedelta(minutes=15), 70.0),  # 翌日00:00
+        ]
+        service = TideCalculationService()
+
+        # Act
+        result = service.extract_high_low_tides(data)
+
+        # Assert: 境界付近の干潮が抽出されること
+        assert len(result) == 1
+        assert result[0].time == base_time.replace(minute=55)
+        assert result[0].event_type == "low"
+
     def test_extract_high_low_tides_two_per_day_over_30_days(self) -> None:
         """Return two highs and two lows per day on a stable waveform.
 
