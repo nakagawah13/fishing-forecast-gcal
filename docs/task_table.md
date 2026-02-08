@@ -43,6 +43,7 @@
 | T-011 | 1.4 | 設定ファイルローダー | [implementation_plan.md](implementation_plan.md#t-011-設定ファイルローダー) | [#22](https://github.com/nakagawah13/fishing-forecast-gcal/issues/22) | ✅ Completed |
 | T-012 | 1.4 | CLI エントリーポイント | [implementation_plan.md](implementation_plan.md#t-012-cliエントリーポイント) | [#23](https://github.com/nakagawah13/fishing-forecast-gcal/issues/23) | ✅ Completed |
 | T-013 | 1.5 | E2E テスト | [implementation_plan.md](implementation_plan.md#t-013-e2eテスト) | [#24](https://github.com/nakagawah13/fishing-forecast-gcal/issues/24) | ✅ Completed |
+| T-013.1 | 1.5 | station_id マッピングの導入 ([doc](completed/t-0131-station-id-mapping.md)) | [implementation_plan.md](implementation_plan.md#t-0131-station_id-マッピングの導入) | N/A | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 
