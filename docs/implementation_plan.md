@@ -261,8 +261,10 @@
 
 ---
 
-#### T-009: CalendarRepository 実装
+#### T-009: CalendarRepository 実装 ✅
 **責務**: カレンダーイベントの作成・取得・更新
+
+**ステータス**: ✅ 完了（2026-02-08）
 
 **成果物**:
 - `infrastructure/repositories/calendar_repository.py`
@@ -270,12 +272,24 @@
   - DomainモデルとGoogle API形式の変換
   - イベントID生成（`calendar_id + location_id + date` を素材に MD5 ハッシュ）
   - upsertロジック
+  - `extendedProperties` を使用した location_id の保存・取得
 
 **テスト要件**:
-- Mockクライアントで単体テスト
-- 冗等性テスト（同一IDで複数回実行）
+- Mockクライアントで単体テスト ✅
+- 冗等性テスト（同一IDで複数回実行） ✅
+
+**実績**:
+- 16件の単体テストすべてパス
+- カバレッジ100%（CalendarRepository）
+- extendedProperties サポートを GoogleCalendarClient に追加
+- 詳細: [docs/completed/issue-20.md](completed/issue-20.md)
 
 **依存**: T-001, T-002, T-008
+
+**実装完了**: 2026-02-08
+- Issue #20 にて実装
+- 単体テスト 16件、カバレッジ100%
+- ドキュメント: [docs/completed/issue-20.md](./completed/issue-20.md)
 
 ---
 
