@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from fishing_forecast_gcal.domain.models.tide import TideType
 from fishing_forecast_gcal.domain.services.tide_period_analyzer import TidePeriodAnalyzer
 
@@ -136,3 +134,34 @@ class TestTidePeriodAnalyzer:
         assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 2, 3), tide_data) is False
         assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 2, 4), tide_data) is True
         assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 2, 5), tide_data) is False
+
+    def test_period_crossing_month_boundary(self) -> None:
+        """月を跨ぐ連続期間の中央日判定"""
+        # 2026年2月（28日まで）から3月に跨ぐ大潮期間
+        tide_data = [
+            (date(2026, 2, 27), TideType.MODERATE),
+            (date(2026, 2, 28), TideType.SPRING),
+            (date(2026, 3, 1), TideType.SPRING),
+            (date(2026, 3, 2), TideType.SPRING),
+            (date(2026, 3, 3), TideType.MODERATE),
+        ]
+        # 大潮期間（2/28-3/2）の中央日は3/1
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 2, 28), tide_data) is False
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 3, 1), tide_data) is True
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 3, 2), tide_data) is False
+
+    def test_period_crossing_year_boundary(self) -> None:
+        """年を跨ぐ連続期間の中央日判定"""
+        # 2025年12月から2026年1月に跨ぐ小潮期間
+        tide_data = [
+            (date(2025, 12, 30), TideType.NEAP),
+            (date(2025, 12, 31), TideType.NEAP),
+            (date(2026, 1, 1), TideType.NEAP),
+            (date(2026, 1, 2), TideType.NEAP),
+            (date(2026, 1, 3), TideType.LONG),
+        ]
+        # 小潮期間（12/30-1/2）の中央日は12/31（前半側）
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2025, 12, 30), tide_data) is False
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2025, 12, 31), tide_data) is True
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 1, 1), tide_data) is False
+        assert TidePeriodAnalyzer.is_midpoint_day(date(2026, 1, 2), tide_data) is False

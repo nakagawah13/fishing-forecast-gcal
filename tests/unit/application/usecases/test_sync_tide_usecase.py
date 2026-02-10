@@ -62,10 +62,31 @@ class TestSyncTideUseCase:
         )
 
     @pytest.fixture
-    def mock_tide_repo(self, tide_data: Tide) -> Mock:
+    def mock_tide_repo(self, tide_data: Tide, target_date: date) -> Mock:
         """Mockの潮汐データリポジトリ"""
         repo = Mock()
-        repo.get_tide_data.return_value = tide_data
+
+        # 複数日分のデータを返す（前後3日分 = 計7日）
+        # 対象日のみ実データ、他の日は簡易的な大潮データを返す
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            if d == target_date:
+                return tide_data
+            # 他の日は簡易的な大潮データ
+            return Tide(
+                date=d,
+                tide_type=TideType.SPRING,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=160.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=None,
+                prime_time_end=None,
+            )
+
+        repo.get_tide_data.side_effect = get_tide_data_side_effect
         return repo
 
     @pytest.fixture
@@ -92,8 +113,12 @@ class TestSyncTideUseCase:
         # 実行
         usecase.execute(location, target_date)
 
-        # 検証: 潮汐データが取得されたか
-        mock_tide_repo.get_tide_data.assert_called_once_with(location, target_date)
+        # 検証: 潮汐データが複数日分取得されたか（前後3日 + 対象日 = 7日）
+        assert mock_tide_repo.get_tide_data.call_count == 7
+        # 対象日が呼ばれていることを確認
+        calls = mock_tide_repo.get_tide_data.call_args_list
+        target_date_calls = [c for c in calls if c[0][1] == target_date]
+        assert len(target_date_calls) == 1
 
         # 検証: 既存イベントが確認されたか（ドメインロジックでevent_id生成）
         expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
@@ -214,7 +239,27 @@ class TestSyncTideUseCase:
             prime_time_start=datetime(2026, 2, 10, 10, 0, tzinfo=UTC),
             prime_time_end=datetime(2026, 2, 10, 14, 0, tzinfo=UTC),
         )
-        mock_tide_repo.get_tide_data.return_value = tide_data
+
+        # side_effectで複数日分のデータを返す
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            if d == target_date:
+                return tide_data
+            # 他の日は小潮データ
+            return Tide(
+                date=d,
+                tide_type=TideType.NEAP,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=100.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=None,
+                prime_time_end=None,
+            )
+
+        mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
 
         # 実行
         usecase.execute(location, target_date)
@@ -258,7 +303,27 @@ class TestSyncTideUseCase:
             prime_time_start=None,
             prime_time_end=None,
         )
-        mock_tide_repo.get_tide_data.return_value = tide_data
+
+        # side_effectで複数日分のデータを返す
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            if d == target_date:
+                return tide_data
+            # 他の日は長潮データ
+            return Tide(
+                date=d,
+                tide_type=TideType.LONG,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=100.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=None,
+                prime_time_end=None,
+            )
+
+        mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
 
         # 実行
         usecase.execute(location, target_date)
@@ -306,3 +371,154 @@ class TestSyncTideUseCase:
             usecase.execute(location, target_date)
 
         assert "Failed to sync tide" in str(exc_info.value)
+
+    def test_execute_marks_midpoint_day(
+        self,
+        mock_calendar_repo: Mock,
+        location: Location,
+    ) -> None:
+        """連続期間の中央日にマーカーが付くことを確認"""
+        # 大潮が3日連続するデータを準備（2/9-2/11）
+        # 中央日は2/10
+        target_date = date(2026, 2, 10)
+
+        # Mockリポジトリを手動設定
+        mock_tide_repo = Mock()
+
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            # 2/9-2/11は大潮、他は中潮
+            if date(2026, 2, 9) <= d <= date(2026, 2, 11):
+                tide_type = TideType.SPRING
+            else:
+                tide_type = TideType.MODERATE
+
+            return Tide(
+                date=d,
+                tide_type=tide_type,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=160.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+            )
+
+        mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
+        mock_calendar_repo.get_event.return_value = None
+
+        # UseCaseを作成して実行
+        usecase = SyncTideUseCase(tide_repo=mock_tide_repo, calendar_repo=mock_calendar_repo)
+        usecase.execute(location, target_date)
+
+        # 検証: upsert_event が呼ばれたか
+        mock_calendar_repo.upsert_event.assert_called_once()
+
+        # 検証: イベント本文に中央日マーカーが含まれているか
+        call_args = mock_calendar_repo.upsert_event.call_args
+        event: CalendarEvent = call_args[0][0]
+
+        assert "⭐ 中央日" in event.description
+        assert "[TIDE]" in event.description
+
+    def test_execute_no_marker_on_non_midpoint_day(
+        self,
+        mock_calendar_repo: Mock,
+        location: Location,
+    ) -> None:
+        """非中央日にはマーカーが付かないことを確認"""
+        # 大潮が3日連続するが、対象日は開始日（2/9）
+        target_date = date(2026, 2, 9)
+
+        # Mockリポジトリを手動設定
+        mock_tide_repo = Mock()
+
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            # 2/9-2/11は大潮、他は中潮
+            if date(2026, 2, 9) <= d <= date(2026, 2, 11):
+                tide_type = TideType.SPRING
+            else:
+                tide_type = TideType.MODERATE
+
+            return Tide(
+                date=d,
+                tide_type=tide_type,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=160.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+            )
+
+        mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
+        mock_calendar_repo.get_event.return_value = None
+
+        # UseCaseを作成して実行
+        usecase = SyncTideUseCase(tide_repo=mock_tide_repo, calendar_repo=mock_calendar_repo)
+        usecase.execute(location, target_date)
+
+        # 検証: upsert_event が呼ばれたか
+        mock_calendar_repo.upsert_event.assert_called_once()
+
+        # 検証: イベント本文に中央日マーカーが含まれていないか
+        call_args = mock_calendar_repo.upsert_event.call_args
+        event: CalendarEvent = call_args[0][0]
+
+        assert "⭐ 中央日" not in event.description
+        assert "[TIDE]" in event.description
+
+    def test_execute_no_marker_on_non_spring_tide_midpoint(
+        self,
+        mock_calendar_repo: Mock,
+        location: Location,
+    ) -> None:
+        """中潮や小潮の中央日にはマーカーが付かないことを確認"""
+        # 中潮が3日連続し、対象日は中央日（2/10）だがマーカーは付かない
+        target_date = date(2026, 2, 10)
+
+        # Mockリポジトリを手動設定
+        mock_tide_repo = Mock()
+
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            # 2/9-2/11は中潮、他は小潮
+            if date(2026, 2, 9) <= d <= date(2026, 2, 11):
+                tide_type = TideType.MODERATE
+            else:
+                tide_type = TideType.NEAP
+
+            return Tide(
+                date=d,
+                tide_type=tide_type,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=130.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+            )
+
+        mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
+        mock_calendar_repo.get_event.return_value = None
+
+        # UseCaseを作成して実行
+        usecase = SyncTideUseCase(tide_repo=mock_tide_repo, calendar_repo=mock_calendar_repo)
+        usecase.execute(location, target_date)
+
+        # 検証: upsert_event が呼ばれたか
+        mock_calendar_repo.upsert_event.assert_called_once()
+
+        # 検証: 中潮の中央日だがマーカーが付かないことを確認
+        call_args = mock_calendar_repo.upsert_event.call_args
+        event: CalendarEvent = call_args[0][0]
+
+        assert "⭐ 中央日" not in event.description
+        assert "[TIDE]" in event.description
