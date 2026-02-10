@@ -51,6 +51,13 @@
 | T-013.6 | 1.6 | イベントタイトルの潮回り絵文字化 ([doc](completed/issue-56.md)) | [implementation_plan.md](implementation_plan.md#t-0136-イベントタイトルの潮回り絵文字化) | [#56](https://github.com/nakagawah13/fishing-forecast-gcal/issues/56) | ✅ Completed |
 | T-013.7 | 1.7 | 釣り情報の初期化コマンド ([doc](completed/issue-58.md)) | [implementation_plan.md](implementation_plan.md#t-0137-釣り情報の初期化コマンド) | [#58](https://github.com/nakagawah13/fishing-forecast-gcal/issues/58) | ✅ Completed |
 
+## フェーズ 1.8（MVP安定化・第3弾）
+
+| Task ID | Phase | Title | Plan Link | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| T-013.8 | 1.8 | JMA推算テキストパーサーの分離 | [implementation_plan.md](implementation_plan.md#t-0138-jma推算テキストパーサーの分離) | [#69](https://github.com/nakagawah13/fishing-forecast-gcal/issues/69) | Not Started |
+| T-013.9 | 1.8 | JMA潮汐データ取得ロジックの正式モジュール化と全70地点拡張 | [implementation_plan.md](implementation_plan.md#t-0139-jma潮汐データ取得ロジックの正式モジュール化と全70地点拡張) | [#70](https://github.com/nakagawah13/fishing-forecast-gcal/issues/70) | Not Started |
+
 ## フェーズ 2（予報更新）
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
