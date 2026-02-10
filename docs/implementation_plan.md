@@ -547,16 +547,35 @@
 
 ---
 
-#### T-013.5: 潮回り期間中央日のマーカー
+#### T-013.5: 潮回り期間中央日のマーカー ✅
 **責務**: 大潮/小潮などの期間中央日を本文で視認できるようにする
 
+**ステータス**: ✅ 完了（2026-02-10）
+
 **成果物**:
-- `[TIDE]` セクションに中央日のマーカーを追加
-- 連続期間の中央日算出ロジック
+- `domain/services/tide_period_analyzer.py`（新規）
+  - `TidePeriodAnalyzer.is_midpoint_day()`: 対象日が期間中央日か判定
+  - `_find_continuous_period()`: 双方向検索で連続TideTypeの期間を特定
+  - `_calculate_midpoint()`: 偶数日の場合は前半側を中央日とする
+- `application/usecases/sync_tide_usecase.py`（修正）
+  - `execute()`: ±3日分（計7日）のデータを取得して前後文脈を確保
+  - `_get_date_range()`: 日付リスト生成ヘルパー追加
+  - `_format_tide_section()`: 大潮の中央日に "⭐ 中央日" マーカーを追加
+- 大潮のみにマーカー表示（ユーザー決定）
 
 **テスト要件**:
-- 連続期間の中央日にのみ印が付くこと
-- 偶数日数時の扱いが明確化されること
+- 連続期間の中央日にのみ印が付くこと ✅
+- 偶数日数時の扱いが明確化されること ✅
+- 月・年境界をまたぐ期間でも正しく判定できること ✅
+- 大潮以外の中央日にはマーカーが付かないこと ✅
+
+**実績**:
+- TidePeriodAnalyzer: 12テスト合格、100%カバレッジ
+- SyncTideUseCase: 10テスト合格、99%カバレッジ
+- 全232テスト合格、コード品質チェック合格（ruff/pyright）
+- Phase 1 commit: 55b7854（TidePeriodAnalyzer実装）
+- Phase 2 commit: 915b7d1（UseCase統合）
+- 詳細: [docs/completed/issue-57.md](completed/issue-57.md)
 
 **依存**: T-010
 
