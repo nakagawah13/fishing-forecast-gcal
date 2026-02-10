@@ -43,17 +43,23 @@ class ICalendarRepository(ABC):
         ...
 
     @abstractmethod
-    def upsert_event(self, event: CalendarEvent) -> None:
-        """カレンダーイベントを作成または更新（冪等操作）
+    def upsert_event(self, event: CalendarEvent, *, existing: CalendarEvent | None = None) -> None:
+        """Create or update a calendar event (idempotent).
 
         同一IDのイベントが存在する場合は更新、存在しない場合は新規作成します。
         複数回実行しても結果が同じになることを保証します（冪等性）。
 
         Args:
-            event: 作成または更新するイベント
+            event (CalendarEvent): Event to create or update.
+                                   (作成または更新するイベント)
+            existing (CalendarEvent | None): Pre-fetched existing event, if available.
+                When provided, skips the internal get_event() call to avoid
+                a redundant API request. Pass None (default) to let upsert_event
+                perform its own existence check.
+                (事前取得済みの既存イベント。渡された場合は内部の get_event() をスキップ)
 
         Raises:
-            RuntimeError: API呼び出しに失敗した場合（認証エラー、ネットワークエラー等）
+            RuntimeError: If API call fails (認証エラー、ネットワークエラー等).
 
         Note:
             - 既存イベントの NOTES セクションは保持されます

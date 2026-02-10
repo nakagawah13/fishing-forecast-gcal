@@ -217,6 +217,52 @@ class TestUpsertEvent:
         with pytest.raises(RuntimeError, match="Failed to upsert event"):
             calendar_repository.upsert_event(sample_calendar_event)
 
+    def test_upsert_event_with_existing_skips_get(
+        self,
+        calendar_repository: CalendarRepository,
+        mock_client: MagicMock,
+        sample_calendar_event: CalendarEvent,
+    ) -> None:
+        """正常系: existing を渡すと内部の get_event をスキップして更新"""
+        # 既存イベント情報を事前に用意
+        pre_fetched = CalendarEvent(
+            event_id="abc123",
+            title="旧タイトル",
+            description="旧本文",
+            date=date(2026, 2, 8),
+            location_id="yokosuka",
+        )
+
+        # 実行
+        calendar_repository.upsert_event(sample_calendar_event, existing=pre_fetched)
+
+        # 検証: get_event は呼ばれない（内部スキップ）
+        mock_client.get_event.assert_not_called()
+
+        # 検証: update_event が呼ばれる（既存イベントありと判定）
+        mock_client.update_event.assert_called_once()
+        mock_client.create_event.assert_not_called()
+
+    def test_upsert_event_without_existing_calls_get(
+        self,
+        calendar_repository: CalendarRepository,
+        mock_client: MagicMock,
+        sample_calendar_event: CalendarEvent,
+    ) -> None:
+        """正常系: existing=None（デフォルト）の場合は内部で get_event を呼ぶ"""
+        # モック: 既存イベントなし
+        mock_client.get_event.return_value = None
+
+        # 実行
+        calendar_repository.upsert_event(sample_calendar_event)
+
+        # 検証: get_event が呼ばれる（従来動作）
+        mock_client.get_event.assert_called_once_with("test-calendar-id", "abc123")
+
+        # 検証: create_event が呼ばれる（既存なし）
+        mock_client.create_event.assert_called_once()
+        mock_client.update_event.assert_not_called()
+
 
 class TestListEvents:
     """list_events method tests. (list_events メソッドのテスト)"""
