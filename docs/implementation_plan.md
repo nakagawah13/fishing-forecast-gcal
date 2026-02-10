@@ -635,6 +635,66 @@
 
 ---
 
+## フェーズ 1.8: MVP安定化（ポストMVP・第3弾）
+
+**方針**:
+- テスト基盤・コード品質に関する技術的負債を解消
+
+### タスク分割
+
+#### T-013.8: JMA推算テキストパーサーの分離
+**責務**: 臨時スクリプト (`scripts/fetch_jma_suisan_tide_data.py`) のパースロジックをテスト支援モジュールに分離し、テストコードのパッケージ外依存を解消
+
+**ステータス**: ⚪ Not Started
+
+**背景**:
+- `scripts/fetch_jma_suisan_tide_data.py` は気象庁推算テキストのダウンロード用臨時スクリプト
+- 統合テスト (`test_tide_prediction_against_jma_suisan.py`) が `parse_jma_suisan_text` を `from scripts.fetch_jma_suisan_tide_data import ...` で直接インポートしている
+- 臨時スクリプトがテストインフラの構成要素になっており、スクリプトの変更・削除でテストが壊れるリスクがある
+
+**成果物**:
+- `tests/support/jma_suisan_parser.py`（新規）
+  - `JMASuisanDaily` データクラスと `parse_jma_suisan_text` 関数を移動
+- `scripts/fetch_jma_suisan_tide_data.py`（修正）
+  - パースロジックを `tests/support/` からインポートするか、CLI ダウンローダーに縮退
+- `tests/integration/infrastructure/test_tide_prediction_against_jma_suisan.py`（修正）
+  - インポートパスを `tests/support/jma_suisan_parser` に変更
+
+**テスト要件**:
+- 既存の統合テスト（JMA推算値との差分検証）がすべてパスすること
+- `scripts/` からのインポートが解消されていること
+- ruff / pyright チェックがパスすること
+
+**依存**: T-006, T-013
+
+#### T-013.9: JMA潮汐データ取得ロジックの正式モジュール化と全70地点拡張
+**責務**: `scripts/fetch_jma_tide_data.py` のコアロジック（地点データ・パーサー・調和解析）を `src/` 配下の正式モジュールに移動し、地点カバレッジを全 70 地点に拡張する
+
+**ステータス**: ⚪ Not Started
+
+**背景**:
+- `scripts/fetch_jma_tide_data.py` は CLI スクリプトだが、調和定数生成はツールのコアデータパイプラインであり `src/` で管理すべき
+- 現行 `STATIONS` 辞書は 17 地点のみ（カバー率 24%）。気象庁公式一覧は 70 地点
+- 地点コードの誤マッピングが 2 件存在: `FK`(福岡→正しくは深浦), `HA`(博多→正しくは浜田)
+- `ref_level_tp_cm` の値も複数地点で公式データと不一致
+- 参照: https://www.data.jma.go.jp/kaiyou/db/tide/genbo/station.php
+
+**成果物**:
+- `src/` 配下に `JMAStation` データクラスと全 70 地点定義を配置
+- `parse_jma_hourly_text` および `run_harmonic_analysis` を `src/` 配下に移動
+- `scripts/fetch_jma_tide_data.py` をエントリーポイントのみに縮退
+- 全 70 地点の調和定数（pickle）生成が可能な状態
+
+**テスト要件**:
+- パーサー・調和解析の単体テストを追加
+- 既存の統合テストがパスすること
+- 地点コードの誤マッピング（FK, HA）が修正されていること
+- ruff / pyright チェックがパスること
+
+**依存**: T-013.8
+
+---
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割
