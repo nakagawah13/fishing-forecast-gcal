@@ -112,8 +112,8 @@ class SyncTideUseCase:
                 location_id=location.id,
             )
 
-            # 10. カレンダーに登録
-            self._calendar_repo.upsert_event(event)
+            # 10. カレンダーに登録（既存イベント情報を渡して重複API呼び出しを回避）
+            self._calendar_repo.upsert_event(event, existing=existing_event)
             logger.info(f"Event upserted successfully: {event_id}")
 
         except Exception as e:

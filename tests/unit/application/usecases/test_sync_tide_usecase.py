@@ -127,6 +127,10 @@ class TestSyncTideUseCase:
         # 検証: upsert_event が呼ばれたか
         mock_calendar_repo.upsert_event.assert_called_once()
 
+        # 検証: upsert_event に existing=None が渡されたか（新規イベント）
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        assert call_kwargs.get("existing") is None
+
         # 検証: upsert_event に渡されたイベントの内容
         call_args = mock_calendar_repo.upsert_event.call_args
         event: CalendarEvent = call_args[0][0]
@@ -170,6 +174,10 @@ class TestSyncTideUseCase:
 
         # 検証: upsert_event が呼ばれたか
         mock_calendar_repo.upsert_event.assert_called_once()
+
+        # 検証: upsert_event に existing=existing_event が渡されたか（重複API回避）
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        assert call_kwargs.get("existing") is existing_event
 
         # 検証: 既存の[NOTES]が保持されているか
         call_args = mock_calendar_repo.upsert_event.call_args

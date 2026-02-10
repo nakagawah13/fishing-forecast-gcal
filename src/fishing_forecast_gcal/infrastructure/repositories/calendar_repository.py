@@ -62,25 +62,32 @@ class CalendarRepository(ICalendarRepository):
         except Exception as e:
             raise RuntimeError(f"Failed to get event: {e}") from e
 
-    def upsert_event(self, event: CalendarEvent) -> None:
-        """カレンダーイベントを作成または更新（冪等操作）
+    def upsert_event(
+        self, event: CalendarEvent, *, existing: CalendarEvent | None = None
+    ) -> None:
+        """Create or update a calendar event (idempotent).
 
         同一IDのイベントが存在する場合は更新、存在しない場合は新規作成します。
 
         Args:
-            event: 作成または更新するイベント
+            event (CalendarEvent): Event to create or update.
+                                   (作成または更新するイベント)
+            existing (CalendarEvent | None): Pre-fetched existing event.
+                When provided, skips the internal get_event() call.
+                Pass None (default) to let this method check existence itself.
+                (事前取得済みの既存イベント。渡された場合は内部 get_event() をスキップ)
 
         Raises:
-            RuntimeError: API呼び出しに失敗した場合
+            RuntimeError: If API call fails (API呼び出しに失敗した場合).
         """
         try:
-            # 既存イベントを確認
-            existing_event = self.get_event(event.event_id)
+            # existing が明示的に渡されていない場合のみ内部で取得
+            resolved_existing = existing if existing is not None else self.get_event(event.event_id)
 
             # extendedPropertiesにlocation_idを保存
             extended_props = {"location_id": event.location_id}
 
-            if existing_event is not None:
+            if resolved_existing is not None:
                 # 既存イベントを更新
                 self.client.update_event(
                     calendar_id=self.calendar_id,
