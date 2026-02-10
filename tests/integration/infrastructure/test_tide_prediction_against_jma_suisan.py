@@ -12,7 +12,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
-from scripts.fetch_jma_suisan_tide_data import parse_jma_suisan_text
 
 from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.domain.models.tide import TideEvent
@@ -20,6 +19,7 @@ from fishing_forecast_gcal.domain.services.tide_calculation_service import TideC
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
+from tests.support.jma_suisan_parser import parse_jma_suisan_text
 
 JST = ZoneInfo("Asia/Tokyo")
 
