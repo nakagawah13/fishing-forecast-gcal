@@ -43,9 +43,7 @@ class ICalendarRepository(ABC):
         ...
 
     @abstractmethod
-    def upsert_event(
-        self, event: CalendarEvent, *, existing: CalendarEvent | None = None
-    ) -> None:
+    def upsert_event(self, event: CalendarEvent, *, existing: CalendarEvent | None = None) -> None:
         """Create or update a calendar event (idempotent).
 
         同一IDのイベントが存在する場合は更新、存在しない場合は新規作成します。
