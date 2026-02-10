@@ -642,10 +642,10 @@
 
 ### タスク分割
 
-#### T-013.8: JMA推算テキストパーサーの分離
+#### T-013.8: JMA推算テキストパーサーの分離 ✅
 **責務**: 臨時スクリプト (`scripts/fetch_jma_suisan_tide_data.py`) のパースロジックをテスト支援モジュールに分離し、テストコードのパッケージ外依存を解消
 
-**ステータス**: ⚪ Not Started
+**ステータス**: ✅ Completed (2026-02-11)
 
 **背景**:
 - `scripts/fetch_jma_suisan_tide_data.py` は気象庁推算テキストのダウンロード用臨時スクリプト
@@ -661,9 +661,18 @@
   - インポートパスを `tests/support/jma_suisan_parser` に変更
 
 **テスト要件**:
-- 既存の統合テスト（JMA推算値との差分検証）がすべてパスすること
-- `scripts/` からのインポートが解消されていること
-- ruff / pyright チェックがパスすること
+- 既存の統合テスト（JMA推算値との差分検証）がすべてパスすること ✅
+- `scripts/` からのインポートが解消されていること ✅
+- ruff / pyright チェックがパスすること ✅
+
+**実装結果** (2026-02-11):
+- 新規作成: `tests/support/jma_suisan_parser.py` (152行)
+- 新規作成: `tests/unit/support/test_jma_suisan_parser.py` (200行、11テストケース)
+- 修正: `scripts/fetch_jma_suisan_tide_data.py` (パースロジック削除、-125行)
+- 修正: `tests/integration/infrastructure/test_tide_prediction_against_jma_suisan.py` (インポートパス更新)
+- テスト結果: 281 passed, 1 skipped
+- 品質チェック: ruff ✅ / pyright ✅ (型エラー0件)
+- ドキュメント: [docs/completed/issue-69.md](completed/issue-69.md)
 
 **依存**: T-006, T-013
 
