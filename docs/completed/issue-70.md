@@ -3,7 +3,7 @@
 - **Issue**: [#70](https://github.com/nakagawah13/fishing-forecast-gcal/issues/70)
 - **Task ID**: T-013.9
 - **Phase**: 1.8
-- **Status**: 🔵 In Progress
+- **Status**: ✅ Done
 - **Branch**: `refactor/issue-70-jma-station-module`
 
 ## 概要
@@ -85,12 +85,33 @@ src/fishing_forecast_gcal/infrastructure/jma/
 
 ## 受け入れ条件
 
-- [ ] `JMAStation` と全70地点データが `src/` 配下に存在
-- [ ] FK(深浦)・HA(浜田) の誤り修正済み
-- [ ] 全地点の緯度・経度が公式一覧表の値と一致
-- [ ] `ref_level_tp_cm` が公式一覧表の値と一致
-- [ ] `parse_jma_hourly_text` と `run_harmonic_analysis` が `src/` 配下にある
-- [ ] 単体テストが追加されている
-- [ ] `scripts/fetch_jma_tide_data.py` がエントリーポイントのみに縮退
-- [ ] docstring に気象庁地点一覧表のURL参照がある
-- [ ] ruff / pyright チェックがパスする
+- [x] `JMAStation` と全70地点データが `src/` 配下に存在
+- [x] FK(深浦)・HA(浜田) の誤り修正済み
+- [x] 全地点の緯度・経度が公式一覧表の値と一致
+- [x] `ref_level_tp_cm` が公式一覧表の値と一致
+- [x] `parse_jma_hourly_text` と `run_harmonic_analysis` が `src/` 配下にある
+- [x] 単体テストが追加されている (37件: stations 20, parser 10, analysis 7)
+- [x] `scripts/fetch_jma_tide_data.py` がエントリーポイントのみに縮退
+- [x] docstring に気象庁地点一覧表のURL参照がある
+- [x] ruff / pyright チェックがパスする
+
+## 実装結果
+
+### 品質チェック結果
+
+| 種別 | 結果 |
+|------|------|
+| ruff format | ✅ Pass (84 files unchanged) |
+| ruff check | ✅ Pass (0 errors) |
+| pyright | ✅ Pass (0 errors) |
+| pytest (新規37件) | ✅ Pass |
+| pytest (全体318件) | ✅ Pass (1 skipped) |
+
+### テストカバレッジ (jma モジュール)
+
+| ファイル | Stmts | Miss | Cover |
+|----------|-------|------|-------|
+| `stations.py` | 12 | 0 | 100% |
+| `hourly_text_parser.py` | 48 | 7 | 85% |
+| `harmonic_analysis.py` | 69 | 21 | 70% |
+| `__init__.py` | 4 | 0 | 100% |
