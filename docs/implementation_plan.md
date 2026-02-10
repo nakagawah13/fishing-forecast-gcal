@@ -702,6 +702,32 @@
 **依存**: T-013.8
 - ドキュメント: [docs/completed/issue-70.md](completed/issue-70.md)
 
+#### T-013.10: upsert_event の重複 get_event API 呼び出し削除
+**責務**: `SyncTideUseCase.execute()` と `CalendarRepository.upsert_event()` 間の重複 API 呼び出しを削除
+
+**ステータス**: ✅ Done (2026-02-11)
+
+**背景**:
+- `SyncTideUseCase.execute()` 内で `calendar_repo.get_event(event_id)` → NOTES 抽出後、`calendar_repo.upsert_event(event)` を呼ぶと `upsert_event` 内部で再度 `get_event(event_id)` が呼ばれる
+- 同一イベントID に対して Google Calendar API の GET が2回発生していた
+
+**成果物**:
+- `domain/repositories/calendar_repository.py`
+  - `ICalendarRepository.upsert_event()` に `existing: CalendarEvent | None = None` keyword-only 引数追加
+- `infrastructure/repositories/calendar_repository.py`
+  - `CalendarRepository.upsert_event()` で `existing` 渡し時に内部 `get_event` スキップ
+- `application/usecases/sync_tide_usecase.py`
+  - `upsert_event(event, existing=existing_event)` として呼び出し
+
+**テスト要件**:
+- `existing` ありの場合に `get_event` がスキップされること ✅
+- `existing` なしの場合に従来通り `get_event` が呼ばれること ✅（後方互換性）
+- UseCase テストで `existing` パラメータが渡されることを検証 ✅
+- テスト結果: 320 passed, ruff / pyright パス
+- ドキュメント: [docs/completed/issue-46.md](completed/issue-46.md)
+
+**依存**: T-009, T-010
+
 ---
 
 ## フェーズ 2: 直前更新（予報）

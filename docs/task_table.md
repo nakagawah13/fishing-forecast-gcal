@@ -57,6 +57,7 @@
 | --- | --- | --- | --- | --- | --- |
 | T-013.8 | 1.8 | JMA推算テキストパーサーの分離 | [implementation_plan.md](implementation_plan.md#t-0138-jma推算テキストパーサーの分離) | [#69](https://github.com/nakagawah13/fishing-forecast-gcal/issues/69) | ✅ Completed |
 | T-013.9 | 1.8 | JMA潮汐データ取得ロジックの正式モジュール化と全70地点拡張 | [implementation_plan.md](implementation_plan.md#t-0139-jma潮汐データ取得ロジックの正式モジュール化と全70地点拡張) | [#70](https://github.com/nakagawah13/fishing-forecast-gcal/issues/70) | ✅ Completed |
+| T-013.10 | 1.8 | upsert_event の重複 get_event API 呼び出し削除 ([doc](completed/issue-46.md)) | [implementation_plan.md](implementation_plan.md#t-01310-upsert_event-の重複-get_event-api-呼び出し削除) | [#46](https://github.com/nakagawah13/fishing-forecast-gcal/issues/46) | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 
