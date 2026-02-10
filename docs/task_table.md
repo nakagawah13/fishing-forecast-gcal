@@ -49,7 +49,7 @@
 | T-013.4 | 1.6 | 潮位基準面の説明と補正方針 ([doc](completed/issue-55.md)) | [implementation_plan.md](implementation_plan.md#t-0134-潮位基準面の説明と補正方針) | [#55](https://github.com/nakagawah13/fishing-forecast-gcal/issues/55) | ✅ Completed |
 | T-013.5 | 1.6 | 潮回り期間中央日のマーカー ([doc](completed/issue-57.md)) | [implementation_plan.md](implementation_plan.md#t-0135-潮回り期間中央日のマーカー) | [#57](https://github.com/nakagawah13/fishing-forecast-gcal/issues/57) | ✅ Completed |
 | T-013.6 | 1.6 | イベントタイトルの潮回り絵文字化 ([doc](completed/issue-56.md)) | [implementation_plan.md](implementation_plan.md#t-0136-イベントタイトルの潮回り絵文字化) | [#56](https://github.com/nakagawah13/fishing-forecast-gcal/issues/56) | ✅ Completed |
-| T-013.7 | 1.7 | 釣り情報の初期化コマンド | [implementation_plan.md](implementation_plan.md#t-0137-釣り情報の初期化コマンド) | [#58](https://github.com/nakagawah13/fishing-forecast-gcal/issues/58) | Not Started |
+| T-013.7 | 1.7 | 釣り情報の初期化コマンド ([doc](completed/issue-58.md)) | [implementation_plan.md](implementation_plan.md#t-0137-釣り情報の初期化コマンド) | [#58](https://github.com/nakagawah13/fishing-forecast-gcal/issues/58) | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 
