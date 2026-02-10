@@ -219,16 +219,154 @@ class TestUpsertEvent:
 
 
 class TestListEvents:
-    """list_events メソッドのテスト"""
+    """list_events method tests. (list_events メソッドのテスト)"""
 
-    def test_list_events_placeholder(self, calendar_repository: CalendarRepository) -> None:
-        """Phase 2 実装: 現在は空リストを返す"""
+    def test_list_events_returns_domain_models(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: returns CalendarEvent list from API events. (正常系: API→ドメインモデル変換)"""
+        mock_client.list_events.return_value = [
+            {
+                "id": "event1",
+                "summary": "🔴横須賀 (大潮)",
+                "description": "test",
+                "start": {"date": "2026-02-08"},
+                "extendedProperties": {"private": {"location_id": "yokosuka"}},
+            },
+            {
+                "id": "event2",
+                "summary": "🔵横須賀 (小潮)",
+                "description": "test",
+                "start": {"date": "2026-02-10"},
+                "extendedProperties": {"private": {"location_id": "yokosuka"}},
+            },
+        ]
+
         result = calendar_repository.list_events(
             start_date=date(2026, 2, 1), end_date=date(2026, 2, 28), location_id="yokosuka"
         )
 
-        # 空リストが返される
+        assert len(result) == 2
+        assert result[0].event_id == "event1"
+        assert result[1].event_id == "event2"
+        mock_client.list_events.assert_called_once_with(
+            calendar_id="test-calendar-id",
+            start_date=date(2026, 2, 1),
+            end_date=date(2026, 2, 28),
+            private_extended_property="location_id=yokosuka",
+        )
+
+    def test_list_events_empty(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: returns empty list when no events found. (正常系: イベントなし)"""
+        mock_client.list_events.return_value = []
+
+        result = calendar_repository.list_events(
+            start_date=date(2026, 2, 1), end_date=date(2026, 2, 28), location_id="yokosuka"
+        )
+
         assert result == []
+
+    def test_list_events_sorted_by_date(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: results sorted by date. (正常系: 日付順にソート)"""
+        # Return events in reverse order
+        mock_client.list_events.return_value = [
+            {
+                "id": "event2",
+                "summary": "Event 2",
+                "description": "",
+                "start": {"date": "2026-02-15"},
+                "extendedProperties": {"private": {"location_id": "yokosuka"}},
+            },
+            {
+                "id": "event1",
+                "summary": "Event 1",
+                "description": "",
+                "start": {"date": "2026-02-01"},
+                "extendedProperties": {"private": {"location_id": "yokosuka"}},
+            },
+        ]
+
+        result = calendar_repository.list_events(
+            start_date=date(2026, 2, 1), end_date=date(2026, 2, 28), location_id="yokosuka"
+        )
+
+        assert len(result) == 2
+        assert result[0].date == date(2026, 2, 1)
+        assert result[1].date == date(2026, 2, 15)
+
+    def test_list_events_skips_invalid_events(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: skips events with invalid format. (正常系: 不正イベントをスキップ)"""
+        mock_client.list_events.return_value = [
+            {
+                "id": "valid",
+                "summary": "Valid Event",
+                "description": "",
+                "start": {"date": "2026-02-08"},
+                "extendedProperties": {"private": {"location_id": "yokosuka"}},
+            },
+            {
+                "id": "invalid",
+                # missing summary -> causes KeyError in conversion
+            },
+        ]
+
+        result = calendar_repository.list_events(
+            start_date=date(2026, 2, 1), end_date=date(2026, 2, 28), location_id="yokosuka"
+        )
+
+        assert len(result) == 1
+        assert result[0].event_id == "valid"
+
+    def test_list_events_api_error(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Error: raises RuntimeError on API failure. (異常系: APIエラー)"""
+        mock_client.list_events.side_effect = Exception("API Error")
+
+        with pytest.raises(RuntimeError, match="Failed to list events"):
+            calendar_repository.list_events(
+                start_date=date(2026, 2, 1), end_date=date(2026, 2, 28), location_id="yokosuka"
+            )
+
+
+class TestDeleteEvent:
+    """delete_event method tests. (delete_event メソッドのテスト)"""
+
+    def test_delete_event_success(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: delete existing event returns True. (正常系: 既存イベント削除)"""
+        mock_client.delete_event.return_value = True
+
+        result = calendar_repository.delete_event("abc123")
+
+        assert result is True
+        mock_client.delete_event.assert_called_once_with("test-calendar-id", "abc123")
+
+    def test_delete_event_not_found(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Normal: returns False if event not found. (正常系: 存在しないイベント)"""
+        mock_client.delete_event.return_value = False
+
+        result = calendar_repository.delete_event("nonexistent")
+
+        assert result is False
+
+    def test_delete_event_api_error(
+        self, calendar_repository: CalendarRepository, mock_client: MagicMock
+    ) -> None:
+        """Error: raises RuntimeError on API failure. (異常系: APIエラー)"""
+        mock_client.delete_event.side_effect = Exception("API Error")
+
+        with pytest.raises(RuntimeError, match="Failed to delete event"):
+            calendar_repository.delete_event("abc123")
 
 
 class TestAPIFormatConversion:

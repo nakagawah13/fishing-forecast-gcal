@@ -66,24 +66,41 @@ class ICalendarRepository(ABC):
     def list_events(
         self, start_date: date, end_date: date, location_id: str
     ) -> list[CalendarEvent]:
-        """指定期間・地点のカレンダーイベントのリストを取得
+        """List calendar events for a given period and location.
 
-        Phase 2（予報更新機能）で使用します。
-        既存イベントを取得し、予報セクションのみを更新するために使用します。
+        指定期間・地点のカレンダーイベントのリストを取得します。
+        既存イベントの取得や一括削除の対象特定に使用します。
 
         Args:
-            start_date: 検索開始日（含む）
-            end_date: 検索終了日（含む）
-            location_id: 地点の不変ID
+            start_date: Search start date (inclusive / 検索開始日（含む）)
+            end_date: Search end date (inclusive / 検索終了日（含む）)
+            location_id: Immutable location ID (地点の不変ID)
 
         Returns:
-            list[CalendarEvent]: カレンダーイベントのリスト（空リスト可）
+            list[CalendarEvent]: List of calendar events (empty list if none found)
 
         Raises:
-            RuntimeError: API呼び出しに失敗した場合（認証エラー、ネットワークエラー等）
+            RuntimeError: If API call fails (認証エラー、ネットワークエラー等)
 
         Note:
-            - 結果は日付順にソートされます
-            - 指定地点のイベントのみが返されます（location_idでフィルタ）
+            - Results are sorted by date (結果は日付順にソート)
+            - Only events matching the location_id are returned
+        """
+        ...
+
+    @abstractmethod
+    def delete_event(self, event_id: str) -> bool:
+        """Delete a calendar event by ID (idempotent).
+
+        指定IDのカレンダーイベントを削除します（冪等操作）。
+
+        Args:
+            event_id: Event ID to delete (CalendarEvent.generate_event_id() で生成)
+
+        Returns:
+            True if deleted successfully, False if event did not exist
+
+        Raises:
+            RuntimeError: If API call fails (認証エラー、ネットワークエラー等)
         """
         ...

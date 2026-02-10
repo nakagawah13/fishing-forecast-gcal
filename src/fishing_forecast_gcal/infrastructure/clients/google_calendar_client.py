@@ -1,6 +1,7 @@
 """Google Calendar API client with OAuth2 authentication."""
 
 import pathlib
+from datetime import UTC
 from typing import Any
 
 from google.auth.transport.requests import Request
@@ -270,3 +271,111 @@ class GoogleCalendarClient:
             .execute()
         )
         return result  # type: ignore[no-any-return]
+
+    def delete_event(self, calendar_id: str, event_id: str) -> bool:
+        """Delete a calendar event by ID (idempotent).
+
+        If the event does not exist (404), returns False without raising.
+        (削除対象が存在しない場合は False を返し、エラーにしない)
+
+        Args:
+            calendar_id: Calendar ID containing the event
+            event_id: Event ID to delete
+
+        Returns:
+            True if the event was deleted, False if it did not exist
+
+        Raises:
+            RuntimeError: If calendar service is not initialized
+            HttpError: If API call fails (except 404)
+        """
+        from googleapiclient.errors import HttpError
+
+        service = self.get_service()
+
+        try:
+            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+            return True
+        except HttpError as e:
+            if e.resp.status == 404:
+                return False
+            raise
+
+    def list_events(
+        self,
+        calendar_id: str,
+        start_date: Any,
+        end_date: Any,
+        private_extended_property: str | None = None,
+        max_results: int = 2500,
+    ) -> list[dict[str, Any]]:
+        """List calendar events within a date range.
+
+        Retrieves all events in the specified period, optionally filtered
+        by private extended property.
+        (指定期間のイベントを取得。extendedProperty でフィルタ可能)
+
+        Args:
+            calendar_id: Calendar ID to search in
+            start_date: Start date (inclusive, date object)
+            end_date: End date (inclusive, date object)
+            private_extended_property: Filter by private extended property
+                (format: "key=value", e.g. "location_id=tk")
+            max_results: Maximum number of results per page (default: 2500)
+
+        Returns:
+            List of event dictionaries from Google Calendar API
+
+        Raises:
+            RuntimeError: If calendar service is not initialized
+            HttpError: If API call fails
+        """
+        from datetime import date, datetime
+
+        service = self.get_service()
+
+        # Convert date to RFC3339 datetime strings
+        if isinstance(start_date, date) and not isinstance(start_date, datetime):
+            time_min = datetime(
+                start_date.year, start_date.month, start_date.day, tzinfo=UTC
+            ).isoformat()
+        else:
+            time_min = str(start_date)
+
+        if isinstance(end_date, date) and not isinstance(end_date, datetime):
+            # end_date is inclusive, so add 1 day
+            from datetime import timedelta
+
+            next_day = end_date + timedelta(days=1)
+            time_max = datetime(next_day.year, next_day.month, next_day.day, tzinfo=UTC).isoformat()
+        else:
+            time_max = str(end_date)
+
+        all_events: list[dict[str, Any]] = []
+        page_token: str | None = None
+
+        while True:
+            kwargs: dict[str, Any] = {
+                "calendarId": calendar_id,
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "maxResults": max_results,
+                "singleEvents": True,
+                "orderBy": "startTime",
+            }
+
+            if private_extended_property:
+                kwargs["privateExtendedProperty"] = private_extended_property
+
+            if page_token:
+                kwargs["pageToken"] = page_token
+
+            result = service.events().list(**kwargs).execute()
+            events = result.get("items", [])
+            all_events.extend(events)
+
+            page_token = result.get("nextPageToken")
+            if not page_token:
+                break
+
+        return all_events

@@ -111,25 +111,64 @@ class CalendarRepository(ICalendarRepository):
     def list_events(
         self, start_date: date, end_date: date, location_id: str
     ) -> list[CalendarEvent]:
-        """指定期間・地点のカレンダーイベントのリストを取得
+        """List calendar events for a given period and location.
+
+        指定期間・地点のカレンダーイベントのリストを取得します。
 
         Args:
-            start_date: 検索開始日（含む）
-            end_date: 検索終了日（含む）
-            location_id: 地点の不変ID
+            start_date: Search start date (inclusive)
+            end_date: Search end date (inclusive)
+            location_id: Immutable location ID
 
         Returns:
-            list[CalendarEvent]: カレンダーイベントのリスト（空リスト可）
+            list[CalendarEvent]: List of calendar events (empty list if none found)
 
         Raises:
-            RuntimeError: API呼び出しに失敗した場合
-
-        Note:
-            フェーズ2（予報更新機能）で使用します。
-            今回はプレースホルダー実装として空リストを返します。
+            RuntimeError: If API call fails
         """
-        # TODO: Phase 2 で実装
-        return []
+        try:
+            api_events = self.client.list_events(
+                calendar_id=self.calendar_id,
+                start_date=start_date,
+                end_date=end_date,
+                private_extended_property=f"location_id={location_id}",
+            )
+
+            result: list[CalendarEvent] = []
+            for api_event in api_events:
+                try:
+                    event = self._convert_to_domain_model(api_event)
+                    result.append(event)
+                except (ValueError, KeyError) as e:
+                    import logging
+
+                    logging.getLogger(__name__).warning("Skipping event with invalid format: %s", e)
+
+            # Sort by date
+            result.sort(key=lambda e: e.date)
+            return result
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to list events: {e}") from e
+
+    def delete_event(self, event_id: str) -> bool:
+        """Delete a calendar event by ID (idempotent).
+
+        指定IDのカレンダーイベントを削除します。
+
+        Args:
+            event_id: Event ID to delete
+
+        Returns:
+            True if deleted, False if not found
+
+        Raises:
+            RuntimeError: If API call fails
+        """
+        try:
+            return self.client.delete_event(self.calendar_id, event_id)
+        except Exception as e:
+            raise RuntimeError(f"Failed to delete event: {e}") from e
 
     def _convert_to_domain_model(self, api_event: dict[str, Any]) -> CalendarEvent:
         """Google Calendar API形式をDomainモデルに変換

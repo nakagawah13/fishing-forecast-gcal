@@ -69,6 +69,14 @@ class TestICalendarRepositoryMock:
                     if event.location_id == location_id and start_date <= event.date <= end_date
                 ]
 
+            @override
+            def delete_event(self, event_id: str) -> bool:
+                """イベントを削除"""
+                if event_id in self.events:
+                    del self.events[event_id]
+                    return True
+                return False
+
         # Mock実装をインスタンス化
         repository = MockCalendarRepository()
 
@@ -150,6 +158,14 @@ class TestICalendarRepositoryMock:
                 self, start_date: date, end_date: date, location_id: str
             ) -> list[CalendarEvent]:
                 return list(self.events.values())
+
+            @override
+            def delete_event(self, event_id: str) -> bool:
+                """イベントを削除"""
+                if event_id in self.events:
+                    del self.events[event_id]
+                    return True
+                return False
 
         repository = MockCalendarRepository()
 
