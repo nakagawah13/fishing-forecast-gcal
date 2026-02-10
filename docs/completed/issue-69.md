@@ -1,7 +1,7 @@
 # Issue #69: JMA推算テキストパーサーをscripts/からテスト支援モジュールに分離
 
 ## ステータス
-⚪ In Progress
+✅ Completed
 
 ## 概要
 `scripts/fetch_jma_suisan_tide_data.py` は気象庁推算テキストのダウンロード用臨時スクリプトだが、統合テスト (`tests/integration/infrastructure/test_tide_prediction_against_jma_suisan.py`) が `parse_jma_suisan_text` 関数を直接インポートしており、テストインフラがパッケージ外の臨時スクリプトに依存している。
@@ -144,3 +144,50 @@ uv run python scripts/fetch_jma_suisan_tide_data.py --station TK --year 2026
 
 ## リンク
 - Issue: https://github.com/nakagawah13/fishing-forecast-gcal/issues/69
+
+---
+
+## 実装結果・変更点
+
+### 完了日
+2026-02-11
+
+### 実装サマリー
+JMA推算テキストパーサーを `scripts/` から `tests/support/` に分離し、テストインフラの安定性を向上させました。
+
+### 変更ファイル
+1. **新規作成**:
+   - `tests/support/__init__.py` - テスト支援パッケージ初期化
+   - `tests/support/jma_suisan_parser.py` - パースロジック本体（152行）
+   - `tests/unit/support/__init__.py` - 単体テストパッケージ初期化
+   - `tests/unit/support/test_jma_suisan_parser.py` - 単体テスト（200行、11テストケース）
+
+2. **修正**:
+   - `scripts/fetch_jma_suisan_tide_data.py` - パースロジックを削除、ダウンロード専用に縮退（-125行）
+   - `tests/integration/infrastructure/test_tide_prediction_against_jma_suisan.py` - インポートパス更新
+
+### テスト結果
+- 新規単体テスト: 11件すべてパス
+- 既存統合テスト: 1件パス、1件スキップ
+- 全体テスト: 281件パス、1件スキップ
+- コードカバレッジ: 93%
+
+### 品質チェック
+- `ruff format`: ✅ 1ファイル再フォーマット
+- `ruff check`: ✅ インポート順序自動修正後パス
+- `pyright`: ✅ 型エラー0件
+
+### コミット履歴
+1. `285b17e` - パースロジックの分離
+2. `4ff9379` - 単体テストの追加
+3. `c4ffc2d` - インポートパス更新とスクリプト簡素化
+4. `5e4f508` - 実装計画ドキュメント追加
+
+### 効果
+- ✅ テストインフラがパッケージ外依存を解消
+- ✅ パースロジックとダウンロードロジックの責務が分離
+- ✅ 単体テストにより保守性が向上
+- ✅ スクリプトのリファクタリング・削除リスクが低減
+
+### 今後の課題
+- 特になし（要件をすべて達成）

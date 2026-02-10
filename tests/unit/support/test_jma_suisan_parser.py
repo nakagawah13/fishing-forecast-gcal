@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import date, time
 
 import pytest
+
 from tests.support.jma_suisan_parser import JMASuisanDaily, parse_jma_suisan_text
 
 
