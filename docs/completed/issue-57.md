@@ -1,8 +1,9 @@
 # Issue #57: 潮回り期間中央日のマーカー
 
-**ステータス**: In Progress  
-**担当**: AI Assistant  
-**開始日**: 2026-02-10  
+**ステータス**: Completed
+**担当**: AI Assistant
+**開始日**: 2026-02-10
+**完了日**: 2026-02-10
 **Issue**: <https://github.com/nakagawah13/fishing-forecast-gcal/issues/57>
 
 ---
@@ -220,5 +221,83 @@ def _format_tide_section(tide: Tide, is_midpoint: bool = False) -> str:
 
 ## 実装結果・変更点
 
-（実装完了後に追記）
+### 実装概要
+
+2フェーズで実装を完了:
+
+**Phase 1 (commit: 55b7854)**:
+- `TidePeriodAnalyzer` ドメインサービスの新規作成
+- 連続期間検出と中央日判定のロジック実装
+- 10テストケース追加（月/年境界を含む）
+
+**Phase 2 (commit: 915b7d1)**:
+- `SyncTideUseCase` への統合
+- ±3日のデータ取得で前後文脈を確保
+- 大潮のみにマーカー表示する仕様（ユーザー決定）
+- 4テストケース追加/修正
+
+### 主要な実装仕様
+
+**TidePeriodAnalyzer仕様**:
+- `is_midpoint_day()`: 対象日が期間の中央日か判定
+- `_find_continuous_period()`: 双方向検索で同一TideTypeの期間を特定
+- `_calculate_midpoint()`: floor除算で偶数日は前半側を優先
+- 未ソートデータ、月/年境界に対応
+
+**SyncTideUseCase統合**:
+- `execute()`: target_dateの±3日分（計7日）のデータをループ取得
+- `_get_date_range()`: 日付リスト生成ヘルパー追加
+- `_format_tide_section()`: 
+  - `is_midpoint` パラメータ追加
+  - 大潮限定チェック: `if is_midpoint and tide.tide_type == TideType.SPRING:`
+  - マーカー: "⭐ 中央日" を潮回り行の末尾に追加
+
+### 設計決定事項
+
+**マーカー表示対象の限定**:
+- 当初案: すべての潮回り期間の中央日にマーカー
+- **最終決定**: 大潮のみにマーカー表示
+- 理由: カレンダーの視認性向上、最重要な釣行日を強調
+
+**期間判定ロジック**:
+- 月境界（2/28-3/2）、年境界（12/30-1/2）を正しく処理
+- datetime.dateの演算で境界処理を実現
+- テストで検証済み（`test_period_crossing_month_boundary`, `test_period_crossing_year_boundary`）
+
+### テスト結果
+
+**ユニットテスト**:
+- `test_tide_period_analyzer.py`: 12テスト合格
+- `test_sync_tide_usecase.py`: 10テスト合格
+- 全体: 232テスト合格
+
+**コードカバレッジ**:
+- `tide_period_analyzer.py`: 100% (36 statements)
+- `sync_tide_usecase.py`: 99% (81 statements, 1 miss)
+- 全体: 92%
+
+**コード品質チェック**:
+- ruff format: Pass
+- ruff check: Pass
+- pyright: Pass (0 errors, 0 warnings)
+
+### 影響範囲
+
+**変更ファイル**:
+- 新規: `src/fishing_forecast_gcal/domain/services/tide_period_analyzer.py`
+- 修正: `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py`
+- 新規テスト: `tests/unit/domain/services/test_tide_period_analyzer.py`
+- 修正テスト: `tests/unit/application/usecases/test_sync_tide_usecase.py`
+
+**非破壊的変更**:
+- 既存APIシグネチャは変更なし
+- `_format_tide_section()` はデフォルト引数で後方互換性維持
+- 既存動作に影響なし（中央日以外の表示は変更なし）
+
+### 今後の拡張可能性
+
+- 中潮など他の潮回りへのマーカー追加（設定で切り替え）
+- マーカー記号のカスタマイズ（config.yamlで設定）
+- 複数期間の表示（例: 大潮1日目/3日目など）
+
 
