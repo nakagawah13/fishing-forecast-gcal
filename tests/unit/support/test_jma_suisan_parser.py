@@ -147,22 +147,8 @@ class TestParseJMASuisanText:
 
     def test_parse_multiple_days(self) -> None:
         """Test parsing multiple days in text."""
-        line1 = (
-            " " * 72
-            + "241103TK"
-            + "0612162"
-            + "9999999" * 3
-            + "0015058"
-            + "9999999" * 3
-        )
-        line2 = (
-            " " * 72
-            + "241104TK"
-            + "0712165"
-            + "9999999" * 3
-            + "0115060"
-            + "9999999" * 3
-        )
+        line1 = " " * 72 + "241103TK" + "0612162" + "9999999" * 3 + "0015058" + "9999999" * 3
+        line2 = " " * 72 + "241104TK" + "0712165" + "9999999" * 3 + "0115060" + "9999999" * 3
         text = line1 + "\n" + line2
 
         result = parse_jma_suisan_text(text, "TK")
