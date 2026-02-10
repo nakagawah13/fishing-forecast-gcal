@@ -347,9 +347,7 @@ class GoogleCalendarClient:
             from datetime import timedelta
 
             next_day = end_date + timedelta(days=1)
-            time_max = datetime(
-                next_day.year, next_day.month, next_day.day, tzinfo=UTC
-            ).isoformat()
+            time_max = datetime(next_day.year, next_day.month, next_day.day, tzinfo=UTC).isoformat()
         else:
             time_max = str(end_date)
 
