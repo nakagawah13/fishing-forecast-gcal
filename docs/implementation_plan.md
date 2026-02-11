@@ -760,7 +760,7 @@
 
 | サブタスク | 概要 | Issue | ステータス |
 |-----------|------|-------|-----------|
-| ST-1 + ST-2 | Google Drive/Calendar API 添付機能 | [#78](https://github.com/nakagawah13/fishing-forecast-gcal/issues/78) | ⚪ Not Started |
+| ST-1 + ST-2 | Google Drive/Calendar API 添付機能 ([doc](completed/issue-78.md)) | [#78](https://github.com/nakagawah13/fishing-forecast-gcal/issues/78) | ✅ Completed |
 | ST-3 | タイドグラフ画像生成サービス | [#79](https://github.com/nakagawah13/fishing-forecast-gcal/issues/79) | ⚪ Not Started |
 | ST-4 | SyncTideUseCase への統合 | [#80](https://github.com/nakagawah13/fishing-forecast-gcal/issues/80) | ⚪ Not Started |
 | ST-5 | 古い画像の定期削除 | [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81) | ⚪ Not Started |
