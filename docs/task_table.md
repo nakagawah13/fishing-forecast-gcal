@@ -63,11 +63,11 @@
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
 | --- | --- | --- | --- | --- | --- |
-| T-014 | 2 | Weather API クライアント | [implementation_plan.md](implementation_plan.md#t-014-weather-api-クライアント) | [#25](https://github.com/nakagawah13/fishing-forecast-gcal/issues/25) | Not Started |
-| T-015 | 2 | WeatherRepository 実装 | [implementation_plan.md](implementation_plan.md#t-015-weatherrepository-実装) | [#26](https://github.com/nakagawah13/fishing-forecast-gcal/issues/26) | Not Started |
+| T-014 | 2 | Weather API クライアント | [implementation_plan.md](implementation_plan.md#t-014-weather-api-クライアント) | [#25](https://github.com/nakagawah13/fishing-forecast-gcal/issues/25) | ⏸️ Pending (API選定待ち) |
+| T-015 | 2 | WeatherRepository 実装 | [implementation_plan.md](implementation_plan.md#t-015-weatherrepository-実装) | [#26](https://github.com/nakagawah13/fishing-forecast-gcal/issues/26) | ⏸️ Blocked by T-014 |
 | T-016 | 2 | イベント本文フォーマッター | [implementation_plan.md](implementation_plan.md#t-016-イベント本文フォーマッター) | [#27](https://github.com/nakagawah13/fishing-forecast-gcal/issues/27) | Not Started |
-| T-017 | 2 | SyncWeatherUseCase 実装 | [implementation_plan.md](implementation_plan.md#t-017-syncweatherusecase-実装) | [#28](https://github.com/nakagawah13/fishing-forecast-gcal/issues/28) | Not Started |
-| T-018 | 2 | Scheduler 実装 | [implementation_plan.md](implementation_plan.md#t-018-scheduler-実装) | [#29](https://github.com/nakagawah13/fishing-forecast-gcal/issues/29) | Not Started |
+| T-017 | 2 | SyncWeatherUseCase 実装 | [implementation_plan.md](implementation_plan.md#t-017-syncweatherusecase-実装) | [#28](https://github.com/nakagawah13/fishing-forecast-gcal/issues/28) | ⏸️ Blocked by T-014 |
+| T-018 | 2 | Scheduler 実装 | [implementation_plan.md](implementation_plan.md#t-018-scheduler-実装) | [#29](https://github.com/nakagawah13/fishing-forecast-gcal/issues/29) | ⏸️ Blocked by T-014 |
 
 ## フェーズ 3（運用強化）
 

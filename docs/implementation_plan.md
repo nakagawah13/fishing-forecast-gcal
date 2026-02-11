@@ -737,6 +737,17 @@
 #### T-014: Weather API クライアント
 **責務**: 気象予報APIのラッパー
 
+**ステータス**: ⏸️ Pending（API 選定待ち）
+
+**Pending 理由**（2026-02-11）:
+- Issue #25 で指定の tsukumijima API を実測調査した結果、風速 (m/s) と気圧 (hPa) の数値データが提供されないことが判明
+- 現行 `FishingCondition` モデル（`wind_speed_mps: float`, `pressure_hpa: float` を必須）と不整合
+- 代替候補として Open-Meteo API（無料、風速・気圧・気温を数値提供、日本対応）を調査済み
+- API 選定の決定後に実装を再開する
+- 詳細: Issue #25 コメント参照
+
+**ブロック影響**: T-015, T-017, T-018, T-019（一部）が本タスクに依存
+
 **成果物**:
 - `infrastructure/clients/weather_api_client.py`
   - 予報データ取得
