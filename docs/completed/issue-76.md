@@ -1,42 +1,111 @@
 # Issue #76: タイドグラフ画像のカレンダー表示方式POC
 
-**ステータス**: In Progress  
-**担当**: AI Assistant  
-**作成日**: 2026-02-11  
-**関連Issue**: #76  
+**ステータス**: ✅ Completed
+**担当**: AI Assistant
+**作成日**: 2026-02-11
+**更新日**: 2026-02-11
+**関連Issue**: #76
 **フェーズ**: Phase 1.9
+
+**後続 Issue（実装フェーズ）**:
+- [#78](https://github.com/nakagawah13/fishing-forecast-gcal/issues/78): Google Drive/Calendar API 添付機能の実装（ST-1 + ST-2）
+- [#79](https://github.com/nakagawah13/fishing-forecast-gcal/issues/79): タイドグラフ画像生成サービスの実装（ST-3）
+- [#80](https://github.com/nakagawah13/fishing-forecast-gcal/issues/80): SyncTideUseCase への画像添付統合（ST-4）
+- [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81): 古い Drive 画像の定期削除コマンド（ST-5）
 
 ---
 
 ## 概要
 
-既存のブロック課題に干渉せず、タイドグラフ画像をカレンダーイベントに表示する方式を比較検証する。
+タイドグラフ画像を Google Calendar イベントに表示する方式を比較検証し、**方式B（Google Drive 添付）** を採用して実装する。
 
-- **方式A**: イベント本文に画像URLを挿入（外部画像ホスティング）
-- **方式B**: Google Calendar のイベント添付（Drive）を利用
+### 方式決定
 
-画像ホスティングは外部画像サービスを前提とし、具体サービスは本タスクで選定する。
+| 方式 | 概要 | 結論 |
+|------|------|------|
+| 方式A | イベント本文に画像URL挿入（Imgur等） | ❌ 不採用 |
+| **方式B** | **Google Drive + Calendar attachments** | **✅ 採用** |
+
+**選定理由**: Google アカウントのみで完結し、外部サービスのアカウント作成が不要
 
 ---
 
-## 現状分析
+## API 仕様調査結果
 
-### 既存実装の確認
+### Google Calendar API - attachments フィールド
 
-#### 1. GoogleCalendarClient（インフラ層）
+**リファレンス**: https://developers.google.com/calendar/api/v3/reference/events
+
+| 項目 | 仕様 |
+|------|------|
+| `attachments[]` | イベントのファイル添付リスト |
+| `attachments[].fileUrl` | 添付ファイルの URL リンク（**書き込み可能、追加時必須**） |
+| `attachments[].title` | 添付ファイルのタイトル |
+| `attachments[].mimeType` | MIME タイプ |
+| `attachments[].iconLink` | アイコン URL（サードパーティのみ変更可） |
+| `attachments[].fileId` | Drive ファイル ID（**読み取り専用**） |
+| 最大添付数 | **25 個/イベント** |
+| 必須パラメータ | `supportsAttachments=true` をクエリパラメータに設定 |
+
+**`fileUrl` の形式**: Drive API の `Files` リソースの `alternateLink` プロパティと同じ形式
+- 例: `https://drive.google.com/file/d/{fileId}/view?usp=drivesdk`
+
+**認可スコープ**: `https://www.googleapis.com/auth/calendar` （既存スコープで十分）
+
+### Google Drive API - files.create
+
+**リファレンス**: https://developers.google.com/drive/api/v3/reference/files/create
+
+| 項目 | 仕様 |
+|------|------|
+| アップロード URI | `POST https://www.googleapis.com/upload/drive/v3/files` |
+| 最大ファイルサイズ | 5,120 GB |
+| アップロード方式 | `media`（シンプル）/ `multipart`（メタデータ+メディア）/ `resumable` |
+| 認可スコープ | `drive` / `drive.appdata` / **`drive.file`**（最小権限） |
+
+**`drive.file` スコープ**: アプリが作成したファイルのみアクセス可能（最小権限の原則に適合）
+
+### Google Drive API - permissions.create
+
+画像をカレンダー添付として使用するには、ファイルを閲覧可能にする必要がある:
+
+```json
+{
+  "role": "reader",
+  "type": "anyone"
+}
+```
+
+### 必要な OAuth2 スコープ（変更箇所）
+
+```python
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar",      # 既存
+    "https://www.googleapis.com/auth/drive.file",     # 新規追加
+]
+```
+
+**注意**: スコープ追加時は既存の `token.json` を削除して再認証が必要
+
+---
+
+## 既存実装の確認
+
+### 1. GoogleCalendarClient（インフラ層）
 
 **ファイル**: `src/fishing_forecast_gcal/infrastructure/clients/google_calendar_client.py`
 
 **既存メソッド**:
-- `create_event()`: イベント作成（extendedPropertiesサポート済み）
+- `create_event()`: イベント作成（extendedProperties サポート済み）
 - `get_event()`: イベント取得
 - `update_event()`: イベント更新
 
 **現状の制限**:
-- ❌ イベント添付（attachments）未対応
-- ✅ イベント本文（description）のHTML/Markdown対応（Google Calendar側の仕様次第）
+- ❌ イベント添付（`attachments`）未対応
+- ❌ `supportsAttachments=true` パラメータ未設定
+- ❌ Drive API 未統合
 
-#### 2. SyncTideUseCase（アプリケーション層）
+### 2. SyncTideUseCase（アプリケーション層）
 
 **ファイル**: `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py`
 
@@ -64,207 +133,342 @@
 
 ---
 
-## 方式比較
+## 実装計画
 
-### 方式A: イベント本文に画像URLを挿入
+### アーキテクチャ配置
 
-#### 概要
-- 外部画像ホスティングサービスを利用
-- 画像URLをイベント本文に挿入（Markdown形式またはHTML形式）
+レイヤードアーキテクチャに基づく配置:
 
-#### メリット
-- ✅ 既存のクライアント実装をほぼそのまま利用可能
-- ✅ Google Calendar API の追加権限不要
-- ✅ 実装が簡単（本文にURLを追加するだけ）
+```
+Infrastructure Layer:
+  clients/
+    google_calendar_client.py  ← attachments 対応拡張
+    google_drive_client.py     ← 新規: Drive API クライアント
+  repositories/
+    calendar_repository.py     ← attachments パラメータ伝搬
 
-#### デメリット
-- ❌ 外部依存（画像ホスティングサービスの安定性・料金）
-- ❌ Google Calendar の本文表示仕様に依存（HTML/Markdownのレンダリング）
-- ❌ 画像の生存期間管理（ホスティングサービスの保存期間制限）
+Domain Layer:
+  services/
+    tide_graph_service.py      ← 新規: タイドグラフ画像生成サービス
+  repositories/
+    image_repository.py        ← 新規: 画像リポジトリインターフェース
 
-#### 必要な実装
-1. タイドグラフ画像生成（matplotlib等）
-2. 画像ホスティングサービスへのアップロード
-3. 画像URLの取得
-4. イベント本文への画像URL挿入（新規セクション `[GRAPH]` の追加？）
+Application Layer:
+  usecases/
+    sync_tide_usecase.py       ← 画像生成+添付の統合
+```
 
-#### 候補サービス
-- **Imgur**: 無料、API利用可能、アップロード上限あり
-- **GitHub Issues/Releases**: 無料、Markdown対応、リポジトリに紐付け
-- **Cloudinary**: 無料枠あり、画像最適化機能
-- **その他**: Google Drive（公開リンク生成）、AWS S3（有料）
+### サブタスク分割
+
+#### ST-1: Google Drive API クライアント実装
+**新規ファイル**: `src/fishing_forecast_gcal/infrastructure/clients/google_drive_client.py`
+
+**責務**:
+- OAuth2 認証（既存の credentials/token を共有）
+- ファイルアップロード（`files.create` / multipart upload）
+- 公開リンク生成（`permissions.create` → `role: reader, type: anyone`）
+- ファイル削除（`files.delete`）
+- ファイル一覧取得（`files.list` + クエリフィルタ）
+
+**メソッド設計**:
+```python
+class GoogleDriveClient:
+    def authenticate(self) -> None: ...
+    def upload_file(self, file_path: Path, folder_id: str | None = None) -> str:
+        """ファイルをアップロードし、公開URLを返す"""
+    def delete_file(self, file_id: str) -> None: ...
+    def list_files(self, folder_id: str | None = None, query: str | None = None) -> list[dict]: ...
+    def get_or_create_folder(self, folder_name: str) -> str:
+        """指定名のフォルダを取得または作成し、folder_id を返す"""
+```
+
+**フォルダ管理**:
+- 専用フォルダ（デフォルト名: `fishing-forecast-tide-graphs`）にアップロード
+- ユーザーの他のファイルと混在しない
+- フォルダが存在しない場合は初回アップロード時に自動作成
+- `get_or_create_folder()` でフォルダ ID を取得し、`upload_file()` の `folder_id` に渡す
+- ST-5 クリーンアップは同フォルダ内のみを対象とする（安全性）
+
+**テスト要件**:
+- Upload のモック API テスト
+- Permission 設定のモック API テスト
+- Delete のモック API テスト
+- フォルダ作成・取得のモック API テスト
+- 認証失敗時のエラーハンドリング
 
 ---
 
-### 方式B: Google Calendar のイベント添付（Drive）
+#### ST-2: GoogleCalendarClient の attachments 対応拡張
+**変更ファイル**: `src/fishing_forecast_gcal/infrastructure/clients/google_calendar_client.py`
 
-#### 概要
-- Google Drive に画像をアップロード
-- Calendar API の `attachments` フィールドを使用してイベントに添付
+**変更内容**:
+1. `create_event()` に `attachments` パラメータを追加
+2. `update_event()` に `attachments` パラメータを追加
+3. API 呼び出し時に `supportsAttachments=true` を設定
+4. OAuth2 スコープに `drive.file` を追加
 
-#### メリット
-- ✅ Google エコシステム内で完結（外部依存なし）
-- ✅ Google Calendar の標準機能を利用（表示の安定性）
-- ✅ Driveの保存容量内で管理（15GB無料枠）
-
-#### デメリット
-- ❌ 追加のOAuth2スコープが必要（`https://www.googleapis.com/auth/drive.file`）
-- ❌ 既存のクライアント実装を拡張する必要あり
-- ❌ Driveへのアップロード処理が必要（API呼び出し増加）
-- ❌ 古い画像の削除管理が必要（Drive容量の逼迫）
-
-#### 必要な実装
-1. タイドグラフ画像生成（matplotlib等）
-2. Google Drive API クライアントの実装
-3. Driveへの画像アップロード
-4. Calendar API の `attachments` フィールド対応
-5. GoogleCalendarClient の拡張（`create_event`, `update_event` に `attachments` パラメータ追加）
-
-#### 必要な権限
+**API 呼び出し変更例**:
 ```python
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/drive.file",  # 新規追加
+# Before
+self.service.events().insert(calendarId=calendar_id, body=event_body).execute()
+
+# After
+self.service.events().insert(
+    calendarId=calendar_id,
+    body=event_body,
+    supportsAttachments=True,
+).execute()
+```
+
+**attachments 形式**:
+```python
+event_body["attachments"] = [
+    {
+        "fileUrl": "https://drive.google.com/file/d/{fileId}/view?usp=drivesdk",
+        "title": "tide_graph_20260215.png",
+        "mimeType": "image/png",
+    }
 ]
+```
+
+**テスト要件**:
+- attachments 付きイベント作成のモックテスト
+- attachments 付きイベント更新のモックテスト
+- `supportsAttachments=true` パラメータの確認
+- attachments なしの後方互換性テスト
+
+---
+
+#### ST-3: タイドグラフ画像生成サービス
+**新規ファイル**: `src/fishing_forecast_gcal/domain/services/tide_graph_service.py`
+
+**責務**:
+- 潮汐データからタイドグラフ画像を生成
+- matplotlib + seaborn + matplotlib-fontja によるプロット
+- 一時ファイルとして PNG 出力
+
+**日本語フォント対応**:
+- `matplotlib-fontja`（IPAexゴシック同梱）でシステムフォント不要で日本語表示
+- seaborn の `set_theme()` 後に `matplotlib_fontja.japanize()` を呼ぶ必要がある
+  （seaborn がデフォルトフォントで上書きするため）
+- リンターの F401 警告回避: `matplotlib_fontja.japanize()` を明示的に呼ぶ
+
+```python
+import matplotlib_fontja
+import seaborn as sns
+
+sns.set_theme()
+matplotlib_fontja.japanize()  # seaborn のフォント上書き後に再適用
+```
+
+**メソッド設計**:
+```python
+class TideGraphService:
+    def generate_graph(
+        self,
+        date: date,
+        tide_events: list[TideEvent],
+        hourly_heights: list[float],
+        location_name: str,
+        tide_type: TideType,
+    ) -> Path:
+        """タイドグラフ画像を生成し、一時ファイルパスを返す"""
+```
+
+**画像仕様**:
+
+| 項目 | 仕様 | 備考 |
+|------|------|------|
+| アスペクト比 | **1:1（スクエア）** | スマホ表示に最適化 |
+| サイズ | 6×6 インチ | 150dpi → 900×900px |
+| 解像度 | 150 dpi | モバイル表示に十分、ファイルサイズを抑制 |
+| ファイルサイズ | **100KB 以下**目標 | Drive 転送・表示の効率化 |
+| フォーマット | PNG | 透過不要だが可逆圧縮で品質維持 |
+| 配色 | **ダークモード基調** | 早朝・夕方の確認を想定 |
+
+**カラーパレット（ダークモード）**:
+
+| 要素 | 色 | カラーコード |
+|------|-----|-------------|
+| 背景 | ダークネイビー | `#0d1117` |
+| 潮位曲線 | シアン | `#58a6ff` |
+| 海面フィル | シアン半透明 | `#58a6ff` (alpha=0.15) |
+| 満潮マーカー | オレンジ | `#f0883e` |
+| 干潮マーカー | ティール | `#3fb950` |
+| 時合い帯 | ゴールド半透明 | `#d29922` (alpha=0.15) |
+| グリッド線 | グレー | `#30363d` |
+| テキスト（軸・ラベル） | ライトグレー | `#c9d1d9` |
+| タイトル | ホワイト | `#f0f6fc` |
+
+**描画要素**:
+1. **潮位曲線**: 24 時間分の潮位を滑らかにプロット
+2. **海面フィル**: 曲線から下を半透明で塗りつぶし（満ち引きの直感的表現）
+3. **満干潮マーカー**: ● ドット + テキストラベル（時刻 + 潮位）
+   - 例: `06:12` / `162cm` を 2 行で表示
+4. **時合い帯ハイライト**: 満潮前後の時合い帯を半透明の縦帯で可視化
+5. **グリッド**: 低コントラストのグレーで 24h 軸に沿って表示
+6. **タイトル（画像内）**: `{地名} {YYYY年MM月DD日}` + 潮回り絵文字（例: `🔴大潮`）
+7. **X 軸**: 0〜24 時（3 時間刻み）
+8. **Y 軸**: 潮位 (cm)
+
+**ファイル命名規則**:
+```
+tide_graph_{location_id}_{YYYYMMDD}.png
+```
+- 例: `tide_graph_tk_20260215.png`
+- `location_id` で地点を識別、Drive 上でソート時にグルーピングされる
+
+**テスト要件**:
+- 画像ファイルが正常に生成されること
+- ファイルサイズが 100KB 以下であること
+- ダークモード配色が正しく適用されていること
+- 満干潮アノテーション（時刻・潮位）が含まれていること
+- 地名がタイトルに含まれていること
+- 時合い帯ハイライトが正しい時間帯に表示されること
+- 異常データ（空リスト等）でのエラーハンドリング
+
+---
+
+#### ST-4: SyncTideUseCase への統合
+**変更ファイル**: `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py`
+
+**変更内容**:
+1. `TideGraphService` と `GoogleDriveClient` を DI で注入
+2. `execute()` メソッド内で画像生成 → Drive アップロード → Calendar 添付
+3. 画像生成・アップロードが失敗してもイベント同期は継続（graceful degradation）
+4. 設定で画像添付の ON/OFF を制御可能
+
+**処理フロー**:
+```
+1. 潮汐データ取得（既存）
+2. イベント本文生成（既存）
+3. タイドグラフ画像生成（新規）
+4. Google Drive にアップロード（新規）
+5. attachments 付きでイベント作成/更新（拡張）
+6. 一時ファイル削除（新規）
+```
+
+**テスト要件**:
+- 画像添付有効時のフロー正常動作テスト
+- 画像添付無効時の後方互換性テスト
+- 画像生成失敗時の graceful degradation テスト
+- Drive アップロード失敗時の graceful degradation テスト
+
+---
+
+#### ST-5: 古い画像の定期削除
+**新規ファイル**: `src/fishing_forecast_gcal/application/usecases/cleanup_drive_images_usecase.py`
+
+**責務**:
+- Google Drive 上の古いタイドグラフ画像を定期的に削除
+- 保持期間を設定で制御可能（デフォルト: 30 日）
+- CLI コマンドとして実行可能
+
+**メソッド設計**:
+```python
+class CleanupDriveImagesUseCase:
+    def execute(self, retention_days: int = 30) -> int:
+        """保持期間を超えた画像を削除し、削除件数を返す"""
+```
+
+**削除ロジック**:
+1. Drive API の `files.list` で対象フォルダ内のファイルを取得
+2. `createdTime` が保持期間を超えたファイルをフィルタ
+3. `files.delete` で一括削除
+4. 削除件数をログ出力
+
+**テスト要件**:
+- 保持期間内のファイルが削除されないこと
+- 保持期間を超えたファイルが削除されること
+- Drive にファイルがない場合のハンドリング
+
+---
+
+## 設定ファイル変更
+
+### config.yaml への追加項目
+
+```yaml
+tide_graph:
+  enabled: true                                        # タイドグラフ画像の生成・添付を有効化
+  drive_folder_name: "fishing-forecast-tide-graphs"     # Drive 上の専用フォルダ名
+  retention_days: 30                                    # 古い画像の保持期間（日）
+  dpi: 150                                              # 画像解像度
+  figsize: [6, 6]                                       # 画像サイズ [幅, 高さ] インチ（スクエア）
+  dark_mode: true                                       # ダークモード配色
 ```
 
 ---
 
-## 調査項目
+## 受け入れ条件（POC スコープ）
 
-### 1. Google Calendar のイベント本文仕様
-- プレーンテキストのみか、HTML/Markdown対応か？
-- 画像URLを挿入した場合、プレビュー表示されるか？
+- [x] 方式A/方式B の比較メモ
+- [x] 方式選定の結論と理由（方式B採用）
+- [x] API 仕様調査（Calendar attachments, Drive files.create, permissions.create）
+- [x] POC スクリプトによるタイドグラフ画像生成検証
+- [x] 画像仕様の確定（スクエア 6×6, ダークモード, アノテーション）
+- [x] 日本語フォント対応の検証（matplotlib-fontja）
+- [x] 実装計画の策定（ST-1〜ST-5 サブタスク分割）
+- [x] 後続 Issue の起票（#78, #79, #80, #81）
 
-### 2. Google Calendar API の `attachments` 仕様
-- 添付できるファイル形式の制限
-- 添付ファイルの最大サイズ
-- Drive以外のファイルソースのサポート有無
-
-### 3. 画像ホスティングサービスの比較
-- 無料枠の上限
-- API利用の容易さ
-- 画像の保存期間
-- アクセス制限（認証の有無）
-
-### 4. 既存セクションとの整合性
-- 画像をどのセクションに配置するか？
-  - **案1**: 新規セクション `[GRAPH]` を追加（[TIDE]の直後？）
-  - **案2**: `[TIDE]` セクション内に挿入
-  - **案3**: イベント本文の最上部（各セクションの前）
+**注**: 実装タスク（ST-1〜ST-5）は後続 Issue #78〜#81 で追跡
 
 ---
 
-## 実装方針（POC）
+## スコープ
 
-このPOCでは、以下の順序で検証を進めます:
+### スコープ内
+- タイドグラフ画像の生成（matplotlib + seaborn）
+- Google Drive API クライアント実装
+- Calendar API の attachments 対応
+- SyncTideUseCase への統合
+- 古い画像の定期削除
+- 設定ファイルでの ON/OFF 制御
 
-### ステップ1: Google Calendar のイベント本文仕様調査
-- 手動でイベントを作成し、本文に画像URLを挿入してプレビュー表示を確認
-- HTML形式: `<img src="URL">` の動作確認
-- Markdown形式: `![alt](URL)` の動作確認
-
-### ステップ2: 方式Aの簡易実装（優先）
-- matplotlib でダミーのタイドグラフを生成
-- 画像ホスティングサービス（Imgur等）にアップロード
-- 画像URLをイベント本文に挿入
-- Google Calendar での表示確認
-
-### ステップ3: 方式Bの調査
-- Google Calendar API の `attachments` 仕様をドキュメントで確認
-- 必要な権限スコープの確認
-- Drive API の利用方法調査
-
-### ステップ4: 比較と結論
-- 使い勝手、リッチさ、権限、運用コストを比較
-- 方式選定の結論と理由を記録
-- 採用方式の最小POC計画を策定
-
----
-
-## 受け入れ条件
-
-- [ ] 方式A/方式B の比較メモ（使い勝手・リッチさ・権限・運用コスト）
-- [ ] 方式選定の結論と理由
-- [ ] 採用方式の最小POC計画
-- [ ] フェーズ2のブロック課題に影響しないこと（既存のセクション更新ルールを維持）
-
----
-
-## スコープ外
-
-- 本番運用のスケール設計（画像生成の最適化、キャッシュ、バッチ処理）
-- 気象予報機能の変更（Phase 2タスク）
-- タイドグラフの詳細デザイン（このPOCでは簡易版で十分）
+### スコープ外
+- 本番運用のスケール設計（画像生成の最適化、キャッシュ）
+- 気象予報機能の変更（Phase 2 タスク）
+- ライト/ダークモードの動的切替（初版はダークモード固定）
 
 ---
 
 ## 実装予定ファイル
 
-### 新規作成（POC用）
-- `scripts/poc_tide_graph_image.py`: タイドグラフ画像生成スクリプト（matplotlibを使用）
-- `scripts/poc_upload_imgur.py`: Imgurへのアップロードテストスクリプト
-- `docs/tide_graph_image_poc.md`: 調査結果と比較メモのドキュメント
+### 新規作成
+- `src/fishing_forecast_gcal/infrastructure/clients/google_drive_client.py`
+- `src/fishing_forecast_gcal/domain/services/tide_graph_service.py`
+- `src/fishing_forecast_gcal/domain/repositories/image_repository.py`
+- `src/fishing_forecast_gcal/application/usecases/cleanup_drive_images_usecase.py`
+- `tests/infrastructure/clients/test_google_drive_client.py`
+- `tests/domain/services/test_tide_graph_service.py`
+- `tests/application/usecases/test_cleanup_drive_images_usecase.py`
 
-### 変更予定（方式B採用の場合のみ）
+### 変更
 - `src/fishing_forecast_gcal/infrastructure/clients/google_calendar_client.py`
   - `create_event`, `update_event` に `attachments` パラメータ追加
-  - OAuth2スコープに `drive.file` を追加
+  - `supportsAttachments=true` を API 呼び出しに追加
+  - OAuth2 スコープに `drive.file` を追加
 - `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py`
-  - 画像生成・アップロード・URL取得のロジック追加
-  - `_build_description` に画像セクション追加
+  - 画像生成 → Drive アップロード → 添付の統合
+- `config/config.yaml.template`
+  - `tide_graph` セクション追加
+- `pyproject.toml`
+  - `matplotlib-fontja` を依存追加（日本語フォント対応）
+  - `google-api-python-client` は既存（Drive API 含む）
 
----
-
-## 検証計画
-
-### 検証1: イベント本文での画像表示
-- **目的**: Google Calendar がイベント本文内の画像URLをどう扱うか確認
-- **手順**:
-  1. テストカレンダーに手動でイベントを作成
-  2. 本文にプレーンテキストのURL、HTML形式、Markdown形式を挿入
-  3. Google Calendar（Web/モバイル）での表示を確認
-- **期待結果**: URLがクリック可能、または画像がプレビュー表示される
-
-### 検証2: 画像ホスティング（Imgur）
-- **目的**: Imgurへのアップロードと公開URLの取得確認
-- **手順**:
-  1. ダミーのタイドグラフ画像を生成（matplotlib）
-  2. Imgur API を使用してアップロード
-  3. 公開URLを取得
-  4. URLをブラウザで開いて画像が表示されることを確認
-- **期待結果**: 画像が公開URLで表示される
-
-### 検証3: Calendar API の attachments フィールド
-- **目的**: Google Calendar API が attachments をどう扱うか確認
-- **手順**:
-  1. Google Calendar API のドキュメントで `attachments` の仕様を確認
-  2. サンプルコードを参照
-  3. 必要な権限スコープを確認
-- **期待結果**: attachments の実装可能性が判明
-
----
-
-## 次のステップ
-
-POC完了後、採用方式に応じて以下のタスクに分割:
-
-- **方式A採用の場合**:
-  - タイドグラフ画像生成モジュールの実装（domain/services?）
-  - 画像ホスティングクライアントの実装（infrastructure/clients）
-  - SyncTideUseCaseへの統合
-  
-- **方式B採用の場合**:
-  - Google Drive API クライアントの実装
-  - GoogleCalendarClient の拡張
-  - OAuth2スコープの更新
-  - SyncTideUseCaseへの統合
+### POC 用（完了済み）
+- `scripts/poc_tide_graph_image.py`: ダミータイドグラフ画像生成
+- `scripts/poc_upload_imgur.py`: Imgur アップロードテスト（方式A検証用、不要に）
+- `docs/tide_graph_image_poc.md`: 調査結果・比較メモ
 
 ---
 
 ## 備考
 
-- このPOCは実装ではなく調査・検証が中心
-- 画像生成ロジックの詳細は後続タスクで実装
-- 既存の `[TIDE]`/`[FORECAST]`/`[NOTES]` セクション更新ルールを維持すること
+- 画像生成・アップロードが失敗してもイベント同期は継続（graceful degradation）
+- 既存の `[TIDE]`/`[FORECAST]`/`[NOTES]` セクション更新ルールを維持
 - ユーザーが手動で追記した `[NOTES]` セクションは絶対に破壊しない
+- `google-api-python-client` は Calendar API と Drive API の両方をカバー（追加パッケージ不要）
+- `matplotlib-fontja` で日本語フォント対応（IPAexゴシック同梱、システムフォント不要）
+- seaborn 併用時は `set_theme()` 後に `matplotlib_fontja.japanize()` を呼ぶこと
+- スコープ追加時は既存の `token.json` を削除して再認証が必要（README に手順追記）

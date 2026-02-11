@@ -739,22 +739,34 @@
 ### タスク分割
 
 #### T-013.11: タイドグラフ画像の表示方式POC
-**責務**: カレンダーイベントでのタイドグラフ画像表示方式を比較検証
+**責務**: カレンダーイベントでのタイドグラフ画像表示方式を比較検証し、実装方針を確定する
 
-**ステータス**: Not Started
+**ステータス**: ✅ Completed
 
-**成果物**:
-- 方式A: イベント本文に画像URLを挿入（外部画像ホスティング）
-- 方式B: Google Calendar のイベント添付（Drive）を利用
-- 方式比較メモ（使い勝手/リッチさ/権限/運用コスト）
-- 採用方式の提案と最小POC計画
+**方式決定**: 方式 B（Google Drive + Calendar attachments）を採用
+- Google アカウントのみで完結（外部サービス不要）
+- `drive.file` スコープ（最小権限）+ `calendar` スコープ（既存）
+- Calendar API の `attachments` フィールドでイベントに添付
 
-**テスト要件**:
-- 既存の `[TIDE]` / `[FORECAST]` / `[NOTES]` セクション更新ルールを維持
-- `[NOTES]` が保持されることを確認
-- 追加の権限・スコープが必要な場合は明記
+**POC 成果**:
+- 方式 A（Imgur）/ 方式 B（Google Drive）の比較検証 → 方式 B 採用
+- API 仕様調査: Calendar attachments, Drive files.create, permissions.create
+- POC スクリプトによるタイドグラフ画像生成検証（matplotlib + seaborn）
+- 画像仕様確定: スクエア 6×6, ダークモード, 満干潮アノテーション
+- 日本語フォント対応: matplotlib-fontja（IPAexゴシック同梱）
+- 実装計画策定: ST-1〜ST-5 のサブタスク分割
+
+**後続 Issue（実装フェーズ）**:
+
+| サブタスク | 概要 | Issue | ステータス |
+|-----------|------|-------|-----------|
+| ST-1 + ST-2 | Google Drive/Calendar API 添付機能 | [#78](https://github.com/nakagawah13/fishing-forecast-gcal/issues/78) | ⚪ Not Started |
+| ST-3 | タイドグラフ画像生成サービス | [#79](https://github.com/nakagawah13/fishing-forecast-gcal/issues/79) | ⚪ Not Started |
+| ST-4 | SyncTideUseCase への統合 | [#80](https://github.com/nakagawah13/fishing-forecast-gcal/issues/80) | ⚪ Not Started |
+| ST-5 | 古い画像の定期削除 | [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81) | ⚪ Not Started |
 
 **依存**: T-009, T-010
+**詳細ドキュメント**: [docs/completed/issue-76.md](completed/issue-76.md)
 
 ## フェーズ 2: 直前更新（予報）
 
