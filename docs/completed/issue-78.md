@@ -1,8 +1,9 @@
 # Issue #78: Google Drive/Calendar API 添付機能の実装
 
-**ステータス**: 🔵 In Progress
+**ステータス**: ✅ Completed
 **担当**: AI Assistant
 **作成日**: 2026-02-11
+**完了日**: 2026-02-11
 **関連Issue**: #78
 **フェーズ**: Phase 1.9
 **親Issue**: #76（POC — 方式B採用決定）
@@ -88,18 +89,61 @@ SCOPES = [
 
 ## 検証計画
 
-- [ ] `uv run ruff format .` パス
-- [ ] `uv run ruff check .` パス
-- [ ] `uv run pyright` パス
-- [ ] `uv run pytest` パス（全テスト）
-- [ ] Drive upload/delete/list のモック API テスト
-- [ ] フォルダ作成・取得のモック API テスト
-- [ ] attachments 付きイベント作成/更新のモックテスト
-- [ ] attachments なしの後方互換性テスト
-- [ ] 認証失敗時のエラーハンドリング
+- [x] `uv run ruff format .` パス
+- [x] `uv run ruff check .` パス
+- [x] `uv run pyright` パス
+- [x] `uv run pytest` パス（全テスト: 348 passed, 1 skipped）
+- [x] Drive upload/delete/list のモック API テスト
+- [x] フォルダ作成・取得のモック API テスト
+- [x] attachments 付きイベント作成/更新のモックテスト
+- [x] attachments なしの後方互換性テスト
+- [x] 認証失敗時のエラーハンドリング
 
 ## 依存
 
 - T-008: Google Calendar API クライアント（✅ 完了）
 - T-009: CalendarRepository 実装（✅ 完了）
 - T-013.11: タイドグラフ画像の表示方式POC（✅ 完了）
+
+---
+
+## 実装結果・変更点
+
+### 新規作成ファイル
+
+1. **`src/fishing_forecast_gcal/infrastructure/clients/google_drive_client.py`** (225行)
+   - `GoogleDriveClient` クラスを実装
+   - `authenticate()`: OAuth2 認証（Calendar Client と同じ credentials/token を共有）
+   - `upload_file()`: multipart upload + `permissions.create`（`anyone/reader`）→ 公開URL返却
+   - `delete_file()`: 冪等削除（404 は `False` 返却）
+   - `list_files()`: フォルダ/クエリフィルタ + ページネーション対応
+   - `get_or_create_folder()`: 専用フォルダ（デフォルト: `fishing-forecast-tide-graphs`）の取得/作成
+
+2. **`tests/unit/infrastructure/clients/test_google_drive_client.py`** (23テスト)
+   - `TestAuthentication`: 認証フロー 5 テスト（有効トークン/リフレッシュ/新規OAuth/認証エラー）
+   - `TestUploadFile`: アップロード 4 テスト（成功/フォルダ指定/ファイル不在/公開権限設定）
+   - `TestDeleteFile`: 削除 3 テスト（成功/404冪等/APIエラー）
+   - `TestListFiles`: 一覧 5 テスト（基本/フォルダ/クエリ/空/ページネーション）
+   - `TestGetOrCreateFolder`: フォルダ管理 3 テスト（既存取得/新規作成/カスタム名）
+   - `TestScopes`: スコープ検証 3 テスト
+
+### 変更ファイル
+
+3. **`src/fishing_forecast_gcal/infrastructure/clients/google_calendar_client.py`**
+   - `SCOPES` に `https://www.googleapis.com/auth/drive.file` を追加
+   - `create_event()`: `attachments` パラメータ追加、`supportsAttachments=True` を `insert()` に設定
+   - `update_event()`: `attachments` パラメータ追加、`supportsAttachments=True` を `patch()` に設定
+   - 後方互換性維持: `attachments=None` がデフォルト
+
+4. **`tests/unit/infrastructure/clients/test_google_calendar_client.py`** (+5テスト)
+   - `test_create_event_with_attachments`: attachments 付きイベント作成
+   - `test_create_event_without_attachments_backward_compatible`: 後方互換性
+   - `test_update_event_with_attachments`: attachments 付きイベント更新
+   - `test_update_event_without_attachments_backward_compatible`: 後方互換性
+   - `test_scopes_include_drive_file`: スコープ検証
+
+### テスト結果
+
+- **全テスト**: 348 passed, 1 skipped, 5 deselected
+- **ruff check**: All checks passed
+- **pyright**: 0 errors, 0 warnings, 0 informations
