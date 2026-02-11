@@ -19,6 +19,9 @@ from numpy.typing import NDArray
 
 from fishing_forecast_gcal.domain.models.tide import TideEvent, TideType
 
+# numpy array type alias for pyright compatibility
+type FloatArray = NDArray[np.float64]
+
 logger = logging.getLogger(__name__)
 
 # matplotlib バックエンドを非表示に設定（サーバー環境対応）
@@ -168,8 +171,8 @@ class TideGraphService:
     def _plot_tide_curve(
         self,
         ax: plt.Axes,
-        hours: NDArray[np.floating[object]],
-        heights: NDArray[np.floating[object]],
+        hours: FloatArray,
+        heights: FloatArray,
     ) -> None:
         """Plot the tide height curve and fill.
 
@@ -287,7 +290,7 @@ class TideGraphService:
     def _configure_axes(
         self,
         ax: plt.Axes,
-        heights: NDArray[np.floating[object]],
+        heights: FloatArray,
         target_date: date,
         location_name: str,
         tide_type: TideType,
@@ -329,10 +332,7 @@ class TideGraphService:
             spine.set_color(_DarkPalette.GRID)
 
         # タイトル（絵文字はフォントに含まれない場合があるため、テキストのみ使用）
-        title = (
-            f"{location_name} {target_date.strftime('%Y年%m月%d日')}"
-            f"  [{tide_type.value}]"
-        )
+        title = f"{location_name} {target_date.strftime('%Y年%m月%d日')}  [{tide_type.value}]"
         ax.set_title(
             title,
             fontsize=14,
