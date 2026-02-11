@@ -9,8 +9,11 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-# OAuth2 scopes required for Google Calendar API
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
+# OAuth2 scopes required for Google Calendar + Drive API
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/drive.file",
+]
 
 
 class GoogleCalendarClient:
@@ -116,6 +119,7 @@ class GoogleCalendarClient:
         end_date: Any,
         timezone: str = "Asia/Tokyo",
         extended_properties: dict[str, str] | None = None,
+        attachments: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Create a new calendar event.
 
@@ -128,6 +132,8 @@ class GoogleCalendarClient:
             end_date: Event end date (date object, exclusive)
             timezone: Timezone for the event (default: Asia/Tokyo)
             extended_properties: Custom metadata (key-value pairs)
+            attachments: List of file attachment dicts with fileUrl, title,
+                mimeType keys (optional). Requires supportsAttachments=True.
 
         Returns:
             Created event details from Google Calendar API
@@ -163,7 +169,19 @@ class GoogleCalendarClient:
         if extended_properties:
             event_body["extendedProperties"] = {"private": extended_properties}
 
-        result = service.events().insert(calendarId=calendar_id, body=event_body).execute()
+        # Add attachments if provided
+        if attachments:
+            event_body["attachments"] = attachments
+
+        result = (
+            service.events()
+            .insert(
+                calendarId=calendar_id,
+                body=event_body,
+                supportsAttachments=True,
+            )
+            .execute()
+        )
         return result  # type: ignore[no-any-return]
 
     def get_event(self, calendar_id: str, event_id: str) -> dict[str, Any] | None:
@@ -203,6 +221,7 @@ class GoogleCalendarClient:
         end_date: Any = None,
         timezone: str = "Asia/Tokyo",
         extended_properties: dict[str, str] | None = None,
+        attachments: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Update an existing calendar event.
 
@@ -215,6 +234,8 @@ class GoogleCalendarClient:
             end_date: New end date (optional)
             timezone: Timezone for the event (default: Asia/Tokyo)
             extended_properties: Custom metadata (key-value pairs, optional)
+            attachments: List of file attachment dicts with fileUrl, title,
+                mimeType keys (optional). Requires supportsAttachments=True.
 
         Returns:
             Updated event details from Google Calendar API
@@ -264,10 +285,19 @@ class GoogleCalendarClient:
         if extended_properties is not None:
             update_body["extendedProperties"] = {"private": extended_properties}
 
+        # Add attachments if provided
+        if attachments is not None:
+            update_body["attachments"] = attachments
+
         # Use patch for partial update
         result = (
             service.events()
-            .patch(calendarId=calendar_id, eventId=event_id, body=update_body)
+            .patch(
+                calendarId=calendar_id,
+                eventId=event_id,
+                body=update_body,
+                supportsAttachments=True,
+            )
             .execute()
         )
         return result  # type: ignore[no-any-return]

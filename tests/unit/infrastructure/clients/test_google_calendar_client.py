@@ -476,3 +476,134 @@ class TestGoogleCalendarClient:
         )
 
         assert len(result) == 2
+
+    # ========================================
+    # attachments 対応のテスト
+    # ========================================
+
+    def test_create_event_with_attachments(
+        self, authenticated_client: GoogleCalendarClient
+    ) -> None:
+        """正常系: attachments 付きイベント作成"""
+        calendar_id = "test@calendar.com"
+        event_id = "attach-event-id"
+        attachments = [
+            {
+                "fileUrl": "https://drive.google.com/file/d/abc123/view?usp=drivesdk",
+                "title": "tide_graph_tk_20260215.png",
+                "mimeType": "image/png",
+            }
+        ]
+        mock_event = {"id": event_id, "summary": "Test", "attachments": attachments}
+
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
+        mock_service.events().insert().execute.return_value = mock_event
+
+        result = authenticated_client.create_event(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            summary="Test",
+            description="Desc",
+            start_date=date(2026, 2, 15),
+            end_date=date(2026, 2, 16),
+            attachments=attachments,
+        )
+
+        assert result["attachments"] == attachments
+        # supportsAttachments=True と attachments がリクエストボディに含まれることを確認
+        call_args = mock_service.events.return_value.insert.call_args
+        assert call_args[1]["supportsAttachments"] is True
+        assert call_args[1]["body"]["attachments"] == attachments
+
+    def test_create_event_without_attachments_backward_compatible(
+        self, authenticated_client: GoogleCalendarClient
+    ) -> None:
+        """後方互換性: attachments なしでも正常動作"""
+        calendar_id = "test@calendar.com"
+        event_id = "no-attach-id"
+        mock_event = {"id": event_id, "summary": "No attachments"}
+
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
+        mock_service.events().insert().execute.return_value = mock_event
+
+        result = authenticated_client.create_event(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            summary="No attachments",
+            description="Desc",
+            start_date=date(2026, 2, 15),
+            end_date=date(2026, 2, 16),
+        )
+
+        assert result["id"] == event_id
+        call_args = mock_service.events.return_value.insert.call_args
+        assert "attachments" not in call_args[1]["body"]
+        # supportsAttachments は常に True（後方互換性あり）
+        assert call_args[1]["supportsAttachments"] is True
+
+    def test_update_event_with_attachments(
+        self, authenticated_client: GoogleCalendarClient
+    ) -> None:
+        """正常系: attachments 付きイベント更新"""
+        calendar_id = "test@calendar.com"
+        event_id = "update-attach-id"
+        attachments = [
+            {
+                "fileUrl": "https://drive.google.com/file/d/xyz789/view?usp=drivesdk",
+                "title": "tide_graph_tk_20260216.png",
+                "mimeType": "image/png",
+            }
+        ]
+
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
+        # get_event のモック（update_event 冒頭で存在確認）
+        mock_service.events().get().execute.return_value = {"id": event_id}
+        # patch のモック
+        mock_service.events().patch().execute.return_value = {
+            "id": event_id,
+            "attachments": attachments,
+        }
+
+        result = authenticated_client.update_event(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            summary="Updated",
+            attachments=attachments,
+        )
+
+        assert result["attachments"] == attachments
+        call_args = mock_service.events.return_value.patch.call_args
+        assert call_args[1]["supportsAttachments"] is True
+        assert call_args[1]["body"]["attachments"] == attachments
+
+    def test_update_event_without_attachments_backward_compatible(
+        self, authenticated_client: GoogleCalendarClient
+    ) -> None:
+        """後方互換性: attachments なしの更新でも正常動作"""
+        calendar_id = "test@calendar.com"
+        event_id = "no-attach-update-id"
+
+        mock_service = authenticated_client._service  # pyright: ignore[reportPrivateUsage]
+        mock_service.events().get().execute.return_value = {"id": event_id}
+        mock_service.events().patch().execute.return_value = {
+            "id": event_id,
+            "summary": "Updated",
+        }
+
+        result = authenticated_client.update_event(
+            calendar_id=calendar_id,
+            event_id=event_id,
+            summary="Updated",
+        )
+
+        assert result["id"] == event_id
+        call_args = mock_service.events.return_value.patch.call_args
+        assert "attachments" not in call_args[1]["body"]
+        assert call_args[1]["supportsAttachments"] is True
+
+    def test_scopes_include_drive_file(self) -> None:
+        """OAuth2 スコープに drive.file が含まれる"""
+        from fishing_forecast_gcal.infrastructure.clients.google_calendar_client import SCOPES
+
+        assert "https://www.googleapis.com/auth/drive.file" in SCOPES
+        assert "https://www.googleapis.com/auth/calendar" in SCOPES
