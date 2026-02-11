@@ -9,7 +9,11 @@ from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib_fontja
 import numpy as np
+
+# 日本語フォント適用（IPAexゴシック同梱、システムフォント不要）
+matplotlib_fontja.japanize()
 
 
 def generate_dummy_tide_graph(
@@ -32,11 +36,21 @@ def generate_dummy_tide_graph(
     tide_height = 100 + 60 * np.sin(2 * np.pi * hours / 12.42)  # 半日周潮
 
     # グラフ生成
-    fig, ax = plt.subplots(figsize=(10, 4))
+    _fig, ax = plt.subplots(figsize=(10, 4))
 
     # 潮位曲線
     ax.plot(hours, tide_height, linewidth=2, color="#1f77b4")
     ax.fill_between(hours, 0, tide_height, alpha=0.3, color="#1f77b4")
+
+    # NOTE: 本番実装（TideGraphService）では以下の仕様を適用する:
+    # - アスペクト比: 1:1 スクエア (6x6 インチ, 900x900px @150dpi)
+    # - 配色: ダークモード基調 (背景 #0d1117, 曲線 #58a6ff)
+    # - 満干潮アノテーション: ●マーカー + 時刻/潮位ラベル
+    #   - 満潮: #f0883e (オレンジ), 干潮: #3fb950 (ティール)
+    # - 時合い帯ハイライト: #d29922 (alpha=0.15)
+    # - タイトル: {地名} {MM/DD} + 潮回り絵文字
+    # - ファイル名: tide_graph_{location_id}_{YYYYMMDD}.png
+    # - Drive フォルダ: fishing-forecast-tide-graphs（専用）
 
     # グリッド
     ax.grid(True, alpha=0.3, linestyle="--")
