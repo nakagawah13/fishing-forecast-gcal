@@ -1,8 +1,9 @@
 # Issue #79: タイドグラフ画像生成サービスの実装
 
-**ステータス**: 🔵 In Progress
+**ステータス**: ✅ Completed
 **担当**: AI Assistant
 **作成日**: 2026-02-11
+**完了日**: 2026-02-11
 **関連Issue**: #79
 **フェーズ**: Phase 1.9
 **親Issue**: #76（POC — 方式B採用決定）
@@ -119,3 +120,36 @@ tide_graph_{location_id}_{YYYYMMDD}.png
 - T-001: ドメインモデル定義（✅ 完了）— `TideEvent`, `TideType`
 - T-005: 時合い帯特定サービス（✅ 完了）— `PrimeTimeFinder`
 - T-013.11: タイドグラフ画像の表示方式POC（✅ 完了）— 画像仕様確定
+
+---
+
+## 実装結果
+
+### 新規作成ファイル
+
+| ファイル | 行数 | 概要 |
+|---------|------|------|
+| `src/fishing_forecast_gcal/domain/services/tide_graph_service.py` | ~200 行 | タイドグラフ画像生成 Domain サービス |
+| `tests/unit/domain/services/test_tide_graph_service.py` | ~350 行 | ユニットテスト 24 件 |
+
+### 変更ファイル
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `src/fishing_forecast_gcal/domain/services/__init__.py` | `TideGraphService` のエクスポート追加 |
+
+### テスト結果
+
+| 種別 | 対象 | 結果 |
+|------|------|------|
+| ユニットテスト | `test_tide_graph_service.py` (24 件) | ✅ Pass |
+| 全テスト | `pytest` (372 件) | ✅ Pass |
+| Lint | `ruff check .` | ✅ Pass |
+| フォーマット | `ruff format --check .` | ✅ Pass |
+| 型チェック | `pyright` | ✅ Pass (0 errors) |
+
+### 設計上の決定事項
+
+- **タイトル形式**: IPAexGothic フォントが絵文字グリフを持たないため、潮回りの表示を `[大潮]` のようなテキスト括弧形式に変更（POC 仕様からの差分）
+- **型エイリアス**: pyright strict モード対応のため `FloatArray = NDArray[np.float64]` を定義
+- **IImageRepository**: 本 Issue スコープでは不要と判断。画像 Path を返すのみで、Drive アップロードは後続 #80 で対応
