@@ -59,6 +59,12 @@
 | T-013.9 | 1.8 | JMA潮汐データ取得ロジックの正式モジュール化と全70地点拡張 | [implementation_plan.md](implementation_plan.md#t-0139-jma潮汐データ取得ロジックの正式モジュール化と全70地点拡張) | [#70](https://github.com/nakagawah13/fishing-forecast-gcal/issues/70) | ✅ Completed |
 | T-013.10 | 1.8 | upsert_event の重複 get_event API 呼び出し削除 ([doc](completed/issue-46.md)) | [implementation_plan.md](implementation_plan.md#t-01310-upsert_event-の重複-get_event-api-呼び出し削除) | [#46](https://github.com/nakagawah13/fishing-forecast-gcal/issues/46) | ✅ Completed |
 
+## フェーズ 1.9（MVP安定化・第4弾）
+
+| Task ID | Phase | Title | Plan Link | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| T-013.11 | 1.9 | タイドグラフ画像の表示方式POC | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#76](https://github.com/nakagawah13/fishing-forecast-gcal/issues/76) | Not Started |
+
 ## フェーズ 2（予報更新）
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
