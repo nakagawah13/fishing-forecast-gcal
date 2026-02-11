@@ -59,9 +59,7 @@ class GoogleDriveClient:
         """
         # Load existing token
         if self.token_path.exists():
-            self._creds = Credentials.from_authorized_user_file(
-                str(self.token_path), SCOPES
-            )
+            self._creds = Credentials.from_authorized_user_file(str(self.token_path), SCOPES)
 
         # If no valid credentials, perform OAuth flow
         if not self._creds or not self._creds.valid:
@@ -76,9 +74,7 @@ class GoogleDriveClient:
                         "Please download OAuth2 credentials from Google Cloud Console."
                     )
 
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(self.credentials_path), SCOPES
-                )
+                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_path), SCOPES)
                 self._creds = flow.run_local_server(port=0)  # type: ignore[assignment]
                 logger.info("Authentication successful!")
 
@@ -102,9 +98,7 @@ class GoogleDriveClient:
             RuntimeError: If authentication has not been performed
         """
         if self._service is None:
-            raise RuntimeError(
-                "Drive service not initialized. Call authenticate() first."
-            )
+            raise RuntimeError("Drive service not initialized. Call authenticate() first.")
         return self._service
 
     def upload_file(
@@ -144,9 +138,7 @@ class GoogleDriveClient:
 
         # Upload file
         created_file = (
-            service.files()
-            .create(body=file_metadata, media_body=media, fields="id")
-            .execute()
+            service.files().create(body=file_metadata, media_body=media, fields="id").execute()
         )
         file_id: str = created_file["id"]
 
@@ -236,9 +228,7 @@ class GoogleDriveClient:
 
         return all_files
 
-    def get_or_create_folder(
-        self, folder_name: str = DEFAULT_FOLDER_NAME
-    ) -> str:
+    def get_or_create_folder(self, folder_name: str = DEFAULT_FOLDER_NAME) -> str:
         """Get existing folder ID or create a new folder.
 
         Searches for a folder by exact name match. If not found,
@@ -258,11 +248,7 @@ class GoogleDriveClient:
             f"and mimeType = 'application/vnd.google-apps.folder' "
             f"and trashed = false"
         )
-        result = (
-            service.files()
-            .list(q=q, fields="files(id, name)", pageSize=1)
-            .execute()
-        )
+        result = service.files().list(q=q, fields="files(id, name)", pageSize=1).execute()
         folders = result.get("files", [])
 
         if folders:
@@ -275,11 +261,7 @@ class GoogleDriveClient:
             "name": folder_name,
             "mimeType": "application/vnd.google-apps.folder",
         }
-        folder = (
-            service.files()
-            .create(body=folder_metadata, fields="id")
-            .execute()
-        )
+        folder = service.files().create(body=folder_metadata, fields="id").execute()
         folder_id = folder["id"]
         logger.info("Created folder '%s': %s", folder_name, folder_id)
         return folder_id
