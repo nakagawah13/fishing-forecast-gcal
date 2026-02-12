@@ -1,6 +1,6 @@
 # Issue #98: OAuth スコープ不一致時の再認証ハンドリング
 
-## ステータス: In Progress
+## ステータス: Completed
 
 ## 変更概要
 
@@ -50,3 +50,33 @@
 - `infrastructure/clients/google_auth.py` — スコープ検証ロジック追加
 - `tests/unit/infrastructure/clients/test_google_auth.py` — テスト追加
 - 他のモジュールへの変更なし（authenticate のインターフェースは変更しない）
+
+## 実装結果・変更点
+
+### 変更ファイル
+
+1. **`src/fishing_forecast_gcal/infrastructure/clients/google_auth.py`**
+   - `_scopes_match(creds)` ヘルパー関数を追加: トークンのスコープと `SCOPES` 定数を比較
+   - `_run_oauth_flow(creds_path)` ヘルパー関数を追加: OAuth フロー実行ロジックを抽出
+   - `authenticate()` にスコープ不一致検出ロジックを追加（valid なトークンでもスコープ不足なら再認証）
+   - `creds.refresh()` を `try-except RefreshError` で囲み、失敗時は再認証フローへフォールバック
+   - `google.auth.exceptions.RefreshError` を新規 import
+
+2. **`tests/unit/infrastructure/clients/test_google_auth.py`**
+   - `TestScopeMismatch` クラスを追加（4テスト）
+     - スコープ不一致時に再認証フロー起動
+     - スコープ一致時は既存動作維持
+     - WARNING ログ出力の確認
+     - `scopes=None` の場合のハンドリング
+   - `TestRefreshErrorFallback` クラスを追加（3テスト）
+     - `RefreshError` 発生時の再認証フロー起動
+     - WARNING ログ出力の確認
+     - 新トークンの保存確認
+   - 既存テスト `test_authenticate_with_existing_valid_token` に `scopes` 設定を追加
+
+### テスト結果
+
+- 全 448 テストパス、0 エラー
+- pyright: 0 errors, 0 warnings
+- ruff check: All checks passed
+- ruff format: 適用済み
