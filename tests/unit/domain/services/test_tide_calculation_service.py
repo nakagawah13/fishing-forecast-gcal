@@ -321,3 +321,46 @@ class TestTideCalculationService:
         for counts in counts_by_date.values():
             assert counts["high"] == 2
             assert counts["low"] == 2
+
+
+class TestCalculateTideRange:
+    """Test cases for TideCalculationService.calculate_tide_range()."""
+
+    def test_normal_tide_range(self) -> None:
+        """Normal case: max high - min low."""
+        from fishing_forecast_gcal.domain.models.tide import TideEvent
+
+        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
+        events = [
+            TideEvent(time=base.replace(hour=3), height_cm=150.0, event_type="high"),
+            TideEvent(time=base.replace(hour=9), height_cm=50.0, event_type="low"),
+            TideEvent(time=base.replace(hour=15), height_cm=160.0, event_type="high"),
+            TideEvent(time=base.replace(hour=21), height_cm=55.0, event_type="low"),
+        ]
+        result = TideCalculationService.calculate_tide_range(events)
+        # max_high=160 - min_low=50 = 110
+        assert result == 110.0
+
+    def test_no_high_tide_returns_zero(self) -> None:
+        """Returns 0.0 when no high tide exists."""
+        from fishing_forecast_gcal.domain.models.tide import TideEvent
+
+        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
+        events = [
+            TideEvent(time=base.replace(hour=9), height_cm=50.0, event_type="low"),
+        ]
+        assert TideCalculationService.calculate_tide_range(events) == 0.0
+
+    def test_no_low_tide_returns_zero(self) -> None:
+        """Returns 0.0 when no low tide exists."""
+        from fishing_forecast_gcal.domain.models.tide import TideEvent
+
+        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
+        events = [
+            TideEvent(time=base.replace(hour=3), height_cm=150.0, event_type="high"),
+        ]
+        assert TideCalculationService.calculate_tide_range(events) == 0.0
+
+    def test_empty_events_returns_zero(self) -> None:
+        """Returns 0.0 when no events exist."""
+        assert TideCalculationService.calculate_tide_range([]) == 0.0

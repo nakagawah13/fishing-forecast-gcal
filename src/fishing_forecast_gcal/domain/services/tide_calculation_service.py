@@ -138,3 +138,31 @@ class TideCalculationService:
         # TideEvent を作成して追加
         event = TideEvent(time=time, height_cm=height_cm, event_type=event_type)
         events.append(event)
+
+    @staticmethod
+    def calculate_tide_range(events: list[TideEvent]) -> float:
+        """Calculate tide range from high/low tide events.
+
+        その日の満潮の最大値と干潮の最小値の差を計算します。
+
+        Args:
+            events: List of high/low tide events.
+
+        Returns:
+            Tide range in cm. Returns 0.0 if no high or low tides.
+        """
+        high_tides = [e for e in events if e.event_type == "high"]
+        low_tides = [e for e in events if e.event_type == "low"]
+
+        if not high_tides or not low_tides:
+            logger.warning("Cannot calculate tide range: missing high or low tide")
+            return 0.0
+
+        max_high = max(e.height_cm for e in high_tides)
+        min_low = min(e.height_cm for e in low_tides)
+        tide_range = max_high - min_low
+
+        logger.debug(
+            f"Tide range: {tide_range:.1f}cm (max_high={max_high:.1f}, min_low={min_low:.1f})"
+        )
+        return tide_range
