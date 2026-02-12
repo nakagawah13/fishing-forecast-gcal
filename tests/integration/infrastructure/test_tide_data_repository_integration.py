@@ -101,9 +101,10 @@ class TestTideDataRepositoryIntegration:
 
         # 時合い帯の検証（満潮があれば設定されているはず）
         if high_tides:
-            assert tide.prime_time_start is not None
-            assert tide.prime_time_end is not None
-            assert tide.prime_time_start < tide.prime_time_end
+            assert tide.prime_times is not None
+            assert len(tide.prime_times) > 0
+            for start, end in tide.prime_times:
+                assert start < end
 
         # イベントが時系列順であることを確認
         for i in range(len(tide.events) - 1):

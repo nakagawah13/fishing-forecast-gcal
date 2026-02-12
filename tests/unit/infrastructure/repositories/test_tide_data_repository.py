@@ -104,8 +104,8 @@ class TestTideDataRepository:
         assert tide.date == target_date
         assert tide.tide_type in TideType  # 何らかの潮回りが判定されている
         assert len(tide.events) > 0  # 満干潮が抽出されている
-        assert tide.prime_time_start is not None  # 時合い帯が計算されている
-        assert tide.prime_time_end is not None
+        assert tide.prime_times is not None  # 時合い帯が計算されている
+        assert len(tide.prime_times) > 0
 
         # 満潮・干潮の検出確認
         high_tides = [e for e in tide.events if e.event_type == "high"]
