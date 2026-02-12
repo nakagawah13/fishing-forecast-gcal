@@ -877,6 +877,49 @@
 **依存**: T-013.13
 **Issue**: [#98](https://github.com/nakagawah13/fishing-forecast-gcal/issues/98)
 
+## フェーズ 1.11: バグ修正
+
+### タスク分割
+
+#### T-013.17: 時合い帯の複数満潮対応（1日2回の時合い計算）
+**責務**: 1日に2回訪れる満潮それぞれに対して時合い帯を計算し、カレンダーイベント・タイドグラフ画像の両方に反映する
+
+**ステータス**: ⚪ Not Started
+
+**背景**:
+- 時合いの定義に従えば、1日に2回訪れる満潮の前後（±2時間）がそれぞれ時合いとなる
+- 現行実装では `PrimeTimeFinder.find()` が `high_tides[0]`（最初の満潮）のみを基準に時合いを計算しており、2回目の満潮に対する時合いが欠落している
+- カレンダーイベントの説明文には1回分の時合いしか表示されず、タイドグラフ画像にも1つの時合い帯しか描画されない
+
+**影響範囲（修正対象ファイル）**:
+- `domain/services/prime_time_finder.py`
+  - `find()` の戻り値を `tuple[datetime, datetime] | None` → `list[tuple[datetime, datetime]]` に変更
+  - すべての満潮に対して時合い帯を計算するよう修正
+- `domain/models/tide.py`
+  - `Tide` モデルの `prime_time_start` / `prime_time_end` → `prime_times: list[tuple[datetime, datetime]]` に変更
+  - バリデーションロジックの更新
+- `infrastructure/repositories/tide_data_repository.py`
+  - `PrimeTimeFinder` の新しい戻り値型に対応
+  - `Tide` モデルへの `prime_times` 設定
+- `application/usecases/sync_tide_usecase.py`
+  - `_format_tide_section()` で複数の時合いを表示（箇条書き）
+  - `_generate_and_upload_graph()` で複数の `prime_time` をグラフサービスに渡す
+- `domain/services/tide_graph_service.py`（Protocol）
+  - `prime_time` パラメータを `prime_times: list[tuple[datetime, datetime]]` に変更
+- `infrastructure/services/tide_graph_renderer.py`
+  - `_plot_prime_time_band()` を複数の時合い帯に対応させる
+
+**テスト要件**:
+- 満潮が2回ある日で2つの時合い帯が計算されること
+- 満潮が1回のみの日で1つの時合い帯が計算されること
+- 満潮がない日で空リストが返却されること
+- カレンダーイベント説明文に複数の時合いが表示されること
+- タイドグラフ画像に複数の時合い帯が描画されること
+- 既存テストの修正（単一時合い → 複数時合いの型変更に対応）
+
+**依存**: T-005, T-010
+**Issue**: [#101](https://github.com/nakagawah13/fishing-forecast-gcal/issues/101)
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割
