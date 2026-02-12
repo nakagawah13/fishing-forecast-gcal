@@ -852,7 +852,7 @@
 #### T-013.16: OAuth スコープ不一致時の再認証ハンドリング
 **責務**: `token.json` のスコープが現在の `SCOPES` 定義と異なる場合に自動再認証を行い、`invalid_scope` エラーを防止する
 
-**ステータス**: 🔵 In Progress
+**ステータス**: ✅ 完了
 
 **背景**:
 - T-013.13 で `SCOPES` に `drive.file` を追加した結果、Calendar スコープのみで発行済みの `token.json` でリフレッシュすると `invalid_scope: Bad Request` が発生

@@ -24,6 +24,7 @@ Example:
 import logging
 import pathlib
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -38,14 +39,72 @@ SCOPES = [
 ]
 
 
+def _scopes_match(creds: Credentials) -> bool:
+    """Check if token scopes match the required SCOPES.
+
+    Compare the scopes stored in the credentials with the
+    current SCOPES constant. Returns False if scopes are missing
+    or do not cover all required scopes.
+
+    (トークンのスコープが必要な SCOPES と一致するか確認する)
+
+    Args:
+        creds (Credentials): OAuth2 credentials to check.
+                             (チェック対象の OAuth2 認証情報)
+
+    Returns:
+        bool: True if all required scopes are present.
+              (必要なスコープがすべて含まれている場合 True)
+    """
+    if creds.scopes is None:
+        return False
+    return set(SCOPES).issubset(set(creds.scopes))
+
+
+def _run_oauth_flow(creds_path: pathlib.Path) -> Credentials:
+    """Run a new OAuth2 authorization flow.
+
+    Launches a local server for the user to authorize the application.
+    Raises FileNotFoundError if credentials file is missing.
+
+    (新規 OAuth2 認証フローを実行する)
+
+    Args:
+        creds_path (pathlib.Path): Path to OAuth2 credentials JSON.
+                                   (OAuth2 認証情報 JSON ファイルのパス)
+
+    Returns:
+        Credentials: Newly authorized credentials.
+                     (新しく認証された認証情報)
+
+    Raises:
+        FileNotFoundError: If credentials file does not exist.
+                           (credentials ファイルが存在しない場合)
+    """
+    logger.info("Starting OAuth authentication flow...")
+    logger.info("Using credentials from: %s", creds_path)
+
+    if not creds_path.exists():
+        raise FileNotFoundError(
+            f"Credentials file not found: {creds_path}\n"
+            "Please download OAuth2 credentials from Google Cloud Console."
+        )
+
+    flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
+    new_creds: Credentials = flow.run_local_server(port=0)  # type: ignore[assignment]
+    logger.info("Authentication successful!")
+    return new_creds
+
+
 def authenticate(credentials_path: str, token_path: str) -> Credentials:
     """Perform OAuth2 authentication and return valid Credentials.
 
     Executes the standard Google OAuth2 flow:
     1. Load existing token if available.
-    2. Refresh token if expired.
-    3. Prompt user for authorization if no valid token exists.
-    4. Save token for future use.
+    2. Verify scopes match current SCOPES definition.
+    3. Refresh token if expired (with RefreshError fallback).
+    4. Prompt user for authorization if no valid token exists.
+    5. Save token for future use.
 
     (Google OAuth2 認証を実行し、有効な Credentials を返す)
 
@@ -72,26 +131,32 @@ def authenticate(credentials_path: str, token_path: str) -> Credentials:
     if tok_path.exists():
         creds = Credentials.from_authorized_user_file(str(tok_path), SCOPES)
 
+    # Check scope mismatch — force re-auth if scopes differ
+    if creds and creds.valid and not _scopes_match(creds):
+        logger.warning(
+            "スコープが変更されました。再認証が必要です。 (token scopes: %s, required: %s)",
+            creds.scopes,
+            SCOPES,
+        )
+        creds = None
+
     # If no valid credentials, perform OAuth flow
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            # Refresh expired token
-            logger.info("Refreshing OAuth token...")
-            creds.refresh(Request())
+            try:
+                # Refresh expired token
+                logger.info("Refreshing OAuth token...")
+                creds.refresh(Request())
+            except RefreshError as exc:
+                # リフレッシュ失敗時は再認証フローにフォールバック
+                logger.warning(
+                    "トークンリフレッシュに失敗しました。再認証を開始します。: %s",
+                    exc,
+                )
+                creds = _run_oauth_flow(creds_path)
         else:
             # Perform new OAuth flow
-            logger.info("Starting OAuth authentication flow...")
-            logger.info("Using credentials from: %s", creds_path)
-
-            if not creds_path.exists():
-                raise FileNotFoundError(
-                    f"Credentials file not found: {creds_path}\n"
-                    "Please download OAuth2 credentials from Google Cloud Console."
-                )
-
-            flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
-            creds = flow.run_local_server(port=0)  # type: ignore[assignment]
-            logger.info("Authentication successful!")
+            creds = _run_oauth_flow(creds_path)
 
         # Save token for future use
         assert creds is not None

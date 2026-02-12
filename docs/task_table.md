@@ -77,7 +77,7 @@
 | T-013.13 | 1.10 | Google API 認証ロジック共通化 ([doc](completed/issue-91.md)) | [implementation_plan.md](implementation_plan.md#t-01313-google-api-認証ロジック共通化-) | [#91](https://github.com/nakagawah13/fishing-forecast-gcal/issues/91) | ✅ Completed |
 | T-013.14 | 1.10 | TideGraphService のレイヤー移動 ([doc](completed/issue-92.md)) | [implementation_plan.md](implementation_plan.md#t-01314-tidegraphservice-のレイヤー移動domain--infrastructure-) | [#92](https://github.com/nakagawah13/fishing-forecast-gcal/issues/92) | ✅ Completed |
 | T-013.15 | 1.10 | TideDataRepository の DI 改善 ([doc](completed/issue-93.md)) | [implementation_plan.md](implementation_plan.md#t-01315-tidedatarepository-のドメインロジック分離と-di-改善-) | [#93](https://github.com/nakagawah13/fishing-forecast-gcal/issues/93) | ✅ Completed |
-| T-013.16 | 1.10 | OAuth スコープ不一致時の再認証ハンドリング | [implementation_plan.md](implementation_plan.md#t-01316-oauth-スコープ不一致時の再認証ハンドリング) | [#98](https://github.com/nakagawah13/fishing-forecast-gcal/issues/98) | 🔵 In Progress |
+| T-013.16 | 1.10 | OAuth スコープ不一致時の再認証ハンドリング ([doc](completed/issue-98.md)) | [implementation_plan.md](implementation_plan.md#t-01316-oauth-スコープ不一致時の再認証ハンドリング) | [#98](https://github.com/nakagawah13/fishing-forecast-gcal/issues/98) | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 
