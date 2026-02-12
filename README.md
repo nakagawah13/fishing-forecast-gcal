@@ -1,6 +1,6 @@
 # Fishing Forecast GCal
 
-**最終更新**: 2026-02-10
+**最終更新**: 2026-02-12
 
 釣行計画のために、潮汐・潮回り・満干潮時刻を Google カレンダーへ自動登録するツールです。
 
@@ -43,6 +43,7 @@
 - ✅ **潮回り絵文字表示**: タイトルに視認性の高い絵文字アイコン（🔴大潮 🟠中潮 🔵小潮 等）
 - ✅ **中央日マーカー**: 大潮期間の中央日を⭐で表示
 - ✅ **潮位基準面の明文化**: UTide による観測基準面からの潮位計算を文書化
+- ✅ **タイドグラフ画像添付**: 潮位変動グラフを Google Drive 経由でカレンダーイベントに添付（オプション）
 
 ### イベントフォーマット
 
@@ -64,6 +65,8 @@
 
 [NOTES]
 （ユーザーメモ欄）
+
+添付ファイル: タイドグラフ画像（tide_graph 有効時）
 ```
 
 **潮回りアイコン**:
@@ -93,6 +96,16 @@ uv sync
 3. OAuth 同意画面を設定（Testing モードでOK）
 4. デスクトップアプリ用のOAuthクライアントIDを作成
 5. `credentials.json` をダウンロードし `config/` に配置
+
+### 2a. Google Drive API の設定（タイドグラフ画像を使う場合）
+
+タイドグラフ画像をカレンダーイベントに添付するには、追加で Google Drive API の設定が必要です。
+
+1. [Google Cloud Console](https://console.cloud.google.com/) で **Google Drive API** を有効化（Step 2 と同じプロジェクト）
+2. OAuth スコープは自動で追加されるため、追加設定は不要
+3. `config/config.yaml` に `tide_graph` セクションを追加（Step 4 参照）
+
+> **注意**: 既に `token.json` がある場合、Drive API スコープが含まれていないため、一度 `config/token.json` を削除して再認証が必要です。
 
 ### 3. 調和定数の生成
 
@@ -132,6 +145,11 @@ locations:
 settings:
   timezone: "Asia/Tokyo"
   forecast_window_days: 7
+
+# タイドグラフ画像（オプション）
+tide_graph:
+  enabled: true  # false で無効化
+  drive_folder_name: "fishing-forecast-tide-graphs"
 ```
 
 ### 5. 初回認証
@@ -162,6 +180,19 @@ uv run fishing-forecast-gcal sync-tide --days 30
 - `config/credentials.json`: Google OAuth クレデンシャル
 - `config/token.json`: 認証トークン（初回認証後に自動生成）
 - `config/harmonics/*.pkl`: 潮汐調和定数（スクリプトで生成）
+
+### タイドグラフ画像の設定
+
+`tide_graph` セクションを `config.yaml` に追加すると、潮位変動グラフがカレンダーイベントに添付されます。
+
+| 設定キー | 型 | デフォルト | 説明 |
+|---------|------|-----------|------|
+| `enabled` | bool | `false` | 画像生成・添付の有効/無効 |
+| `drive_folder_name` | string | `"fishing-forecast-tide-graphs"` | Google Drive 上のフォルダ名 |
+
+**前提条件**:
+- Google Drive API が有効化されていること（Step 2a 参照）
+- `token.json` に Drive スコープが含まれていること（なければ再認証）
 
 ## 🏗️ アーキテクチャ
 
