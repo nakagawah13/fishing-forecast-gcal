@@ -73,12 +73,14 @@ def sample_tide_events() -> list[TideEvent]:
 
 
 @pytest.fixture
-def sample_prime_time() -> tuple[datetime, datetime]:
-    """Create sample prime time range (±2h around first high tide)."""
-    return (
-        datetime(2026, 2, 15, 1, 6, tzinfo=JST),
-        datetime(2026, 2, 15, 5, 6, tzinfo=JST),
-    )
+def sample_prime_times() -> list[tuple[datetime, datetime]]:
+    """Create sample prime time ranges (±2h around first high tide)."""
+    return [
+        (
+            datetime(2026, 2, 15, 1, 6, tzinfo=JST),
+            datetime(2026, 2, 15, 5, 6, tzinfo=JST),
+        ),
+    ]
 
 
 @pytest.fixture
@@ -363,7 +365,7 @@ class TestPrimeTimeBand:
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
-        sample_prime_time: tuple[datetime, datetime],
+        sample_prime_times: list[tuple[datetime, datetime]],
         tmp_path: Path,
     ) -> None:
         """Graph generates successfully with prime time band."""
@@ -373,7 +375,7 @@ class TestPrimeTimeBand:
             tide_events=sample_tide_events,
             location_name="東京",
             tide_type=TideType.SPRING,
-            prime_time=sample_prime_time,
+            prime_times=sample_prime_times,
             output_dir=tmp_path,
             location_id="tk",
         )
@@ -395,7 +397,7 @@ class TestPrimeTimeBand:
             tide_events=sample_tide_events,
             location_name="東京",
             tide_type=TideType.SPRING,
-            prime_time=None,
+            prime_times=None,
             output_dir=tmp_path,
             location_id="tk",
         )

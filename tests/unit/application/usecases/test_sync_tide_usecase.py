@@ -58,8 +58,16 @@ class TestSyncTideUseCase:
                     event_type="high",
                 ),
             ],
-            prime_time_start=datetime(2026, 2, 10, 4, 12, tzinfo=UTC),
-            prime_time_end=datetime(2026, 2, 10, 8, 12, tzinfo=UTC),
+            prime_times=[
+                (
+                    datetime(2026, 2, 10, 4, 12, tzinfo=UTC),
+                    datetime(2026, 2, 10, 8, 12, tzinfo=UTC),
+                ),
+                (
+                    datetime(2026, 2, 10, 16, 45, tzinfo=UTC),
+                    datetime(2026, 2, 10, 20, 45, tzinfo=UTC),
+                ),
+            ],
         )
 
     @pytest.fixture
@@ -83,8 +91,6 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=None,
-                prime_time_end=None,
             )
 
         repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -148,7 +154,8 @@ class TestSyncTideUseCase:
         assert "06:12 (162cm)" in event.description  # 満潮1
         assert "18:45 (155cm)" in event.description  # 満潮2
         assert "12:34 (58cm)" in event.description  # 干潮
-        assert "04:12-08:12" in event.description  # 時合い帯
+        assert "04:12-08:12" in event.description  # 時合い帯1
+        assert "16:45-20:45" in event.description  # 時合い帯2
 
     def test_execute_updates_existing_event(
         self,
@@ -245,8 +252,12 @@ class TestSyncTideUseCase:
                     event_type="low",
                 ),
             ],
-            prime_time_start=datetime(2026, 2, 10, 10, 0, tzinfo=UTC),
-            prime_time_end=datetime(2026, 2, 10, 14, 0, tzinfo=UTC),
+            prime_times=[
+                (
+                    datetime(2026, 2, 10, 10, 0, tzinfo=UTC),
+                    datetime(2026, 2, 10, 14, 0, tzinfo=UTC),
+                ),
+            ],
         )
 
         # side_effectで複数日分のデータを返す
@@ -264,8 +275,6 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=None,
-                prime_time_end=None,
             )
 
         mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -309,8 +318,7 @@ class TestSyncTideUseCase:
                     event_type="high",
                 ),
             ],
-            prime_time_start=None,
-            prime_time_end=None,
+            prime_times=None,
         )
 
         # side_effectで複数日分のデータを返す
@@ -328,8 +336,6 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=None,
-                prime_time_end=None,
             )
 
         mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -411,8 +417,12 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
-                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                prime_times=[
+                    (
+                        datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                        datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                    )
+                ],
             )
 
         mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -461,8 +471,12 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
-                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                prime_times=[
+                    (
+                        datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                        datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                    )
+                ],
             )
 
         mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -511,8 +525,12 @@ class TestSyncTideUseCase:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
-                prime_time_end=datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                prime_times=[
+                    (
+                        datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC),
+                        datetime(d.year, d.month, d.day, 8, 0, tzinfo=UTC),
+                    )
+                ],
             )
 
         mock_tide_repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -570,8 +588,9 @@ class TestSyncTideUseCaseTideGraph:
                     event_type="low",
                 ),
             ],
-            prime_time_start=datetime(2026, 2, 10, 4, 12, tzinfo=UTC),
-            prime_time_end=datetime(2026, 2, 10, 8, 12, tzinfo=UTC),
+            prime_times=[
+                (datetime(2026, 2, 10, 4, 12, tzinfo=UTC), datetime(2026, 2, 10, 8, 12, tzinfo=UTC))
+            ],
         )
 
     @pytest.fixture
@@ -592,8 +611,6 @@ class TestSyncTideUseCaseTideGraph:
                         event_type="high",
                     ),
                 ],
-                prime_time_start=None,
-                prime_time_end=None,
             )
 
         repo.get_tide_data.side_effect = get_tide_data_side_effect
@@ -660,7 +677,7 @@ class TestSyncTideUseCaseTideGraph:
         assert call_kwargs["location_name"] == "東京湾"
         assert call_kwargs["location_id"] == "tokyo"
         assert call_kwargs["tide_type"] == TideType.SPRING
-        assert call_kwargs["prime_time"] is not None
+        assert call_kwargs["prime_times"] is not None
 
         # hourly_heights が取得された
         mock_tide_repo.get_hourly_heights.assert_called_once_with(location, target_date)

@@ -121,14 +121,18 @@ class TestTide:
             date=date(2026, 2, 8),
             tide_type=TideType.SPRING,
             events=events,
-            prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
-            prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
+            prime_times=[
+                (
+                    datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
+                    datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
+                ),
+            ],
         )
         assert tide.date == date(2026, 2, 8)
         assert tide.tide_type == TideType.SPRING
         assert len(tide.events) == 2
-        assert tide.prime_time_start is not None
-        assert tide.prime_time_end is not None
+        assert tide.prime_times is not None
+        assert len(tide.prime_times) == 1
 
     def test_empty_events_raises_error(self) -> None:
         """空のeventsでエラーが発生すること"""
@@ -148,68 +152,66 @@ class TestTide:
         with pytest.raises(ValueError, match="events must be in chronological order"):
             Tide(date=date(2026, 2, 8), tide_type=TideType.SPRING, events=events)
 
-    def test_prime_time_start_only_raises_error(self) -> None:
-        """prime_time_startのみ設定でエラーが発生すること"""
-        events = [
-            TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC), height_cm=162.0, event_type="high"
-            ),
-        ]
-        with pytest.raises(
-            ValueError, match="prime_time_start and prime_time_end must be both set or both None"
-        ):
-            Tide(
-                date=date(2026, 2, 8),
-                tide_type=TideType.SPRING,
-                events=events,
-                prime_time_start=datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
-                prime_time_end=None,
-            )
-
-    def test_prime_time_end_only_raises_error(self) -> None:
-        """prime_time_endのみ設定でエラーが発生すること"""
-        events = [
-            TideEvent(
-                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC), height_cm=162.0, event_type="high"
-            ),
-        ]
-        with pytest.raises(
-            ValueError, match="prime_time_start and prime_time_end must be both set or both None"
-        ):
-            Tide(
-                date=date(2026, 2, 8),
-                tide_type=TideType.SPRING,
-                events=events,
-                prime_time_start=None,
-                prime_time_end=datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
-            )
-
     def test_prime_time_start_after_end_raises_error(self) -> None:
-        """prime_time_start >= prime_time_endでエラーが発生すること"""
+        """prime_times内で start >= end でエラーが発生すること"""
         events = [
             TideEvent(
                 time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC), height_cm=162.0, event_type="high"
             ),
         ]
-        with pytest.raises(ValueError, match="prime_time_start must be before prime_time_end"):
+        with pytest.raises(ValueError, match="prime_time start must be before end"):
             Tide(
                 date=date(2026, 2, 8),
                 tide_type=TideType.SPRING,
                 events=events,
-                prime_time_start=datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
-                prime_time_end=datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
+                prime_times=[
+                    (
+                        datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
+                        datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
+                    ),
+                ],
             )
 
     def test_tide_without_prime_time_is_valid(self) -> None:
-        """prime_timeなしの潮汐情報が有効であること"""
+        """prime_timesなしの潮汐情報が有効であること"""
         events = [
             TideEvent(
                 time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC), height_cm=162.0, event_type="high"
             ),
         ]
         tide = Tide(date=date(2026, 2, 8), tide_type=TideType.SPRING, events=events)
-        assert tide.prime_time_start is None
-        assert tide.prime_time_end is None
+        assert tide.prime_times is None
+
+    def test_tide_with_multiple_prime_times(self) -> None:
+        """複数の時合い帯が有効であること"""
+        events = [
+            TideEvent(
+                time=datetime(2026, 2, 8, 6, 12, tzinfo=UTC), height_cm=162.0, event_type="high"
+            ),
+            TideEvent(
+                time=datetime(2026, 2, 8, 12, 34, tzinfo=UTC), height_cm=58.0, event_type="low"
+            ),
+            TideEvent(
+                time=datetime(2026, 2, 8, 18, 45, tzinfo=UTC), height_cm=155.0, event_type="high"
+            ),
+        ]
+        tide = Tide(
+            date=date(2026, 2, 8),
+            tide_type=TideType.SPRING,
+            events=events,
+            prime_times=[
+                (
+                    datetime(2026, 2, 8, 4, 12, tzinfo=UTC),
+                    datetime(2026, 2, 8, 8, 12, tzinfo=UTC),
+                ),
+                (
+                    datetime(2026, 2, 8, 16, 45, tzinfo=UTC),
+                    datetime(2026, 2, 8, 20, 45, tzinfo=UTC),
+                ),
+            ],
+        )
+        assert tide.prime_times is not None
+        assert len(tide.prime_times) == 2
 
     def test_tide_is_immutable(self) -> None:
         """Tideが不変であること"""

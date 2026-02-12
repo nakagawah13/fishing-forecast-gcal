@@ -93,8 +93,8 @@ class Tide:
         date: 対象日
         tide_type: 潮回り（大潮、中潮など）
         events: 満干潮のリスト（時系列順）
-        prime_time_start: 時合い帯開始時刻（満潮の約2時間前）
-        prime_time_end: 時合い帯終了時刻（満潮の約2時間後）
+        prime_times: 各満潮に対する時合い帯のリスト。
+            各要素は (開始時刻, 終了時刻) のタプル。
 
     Raises:
         ValueError: バリデーションエラー時
@@ -103,8 +103,7 @@ class Tide:
     date: date
     tide_type: TideType
     events: list[TideEvent]
-    prime_time_start: datetime | None = None
-    prime_time_end: datetime | None = None
+    prime_times: list[tuple[datetime, datetime]] | None = None
 
     def __post_init__(self) -> None:
         """インスタンス化後のバリデーション"""
@@ -120,15 +119,8 @@ class Tide:
                     f"{self.events[i].time} >= {self.events[i + 1].time}"
                 )
 
-        # prime_timeの整合性チェック（両方nullまたは両方non-null）
-        prime_time_set = {self.prime_time_start is not None, self.prime_time_end is not None}
-        if len(prime_time_set) > 1:
-            raise ValueError("prime_time_start and prime_time_end must be both set or both None")
-
-        # prime_timeが設定されている場合、開始<終了であること
-        if self.prime_time_start is not None and self.prime_time_end is not None:
-            if self.prime_time_start >= self.prime_time_end:
-                raise ValueError(
-                    f"prime_time_start must be before prime_time_end: "
-                    f"{self.prime_time_start} >= {self.prime_time_end}"
-                )
+        # prime_timesの整合性チェック
+        if self.prime_times:
+            for pt_start, pt_end in self.prime_times:
+                if pt_start >= pt_end:
+                    raise ValueError(f"prime_time start must be before end: {pt_start} >= {pt_end}")
