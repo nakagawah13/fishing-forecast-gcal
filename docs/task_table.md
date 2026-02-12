@@ -67,7 +67,7 @@
 | T-013.11a | 1.9 | Google Drive/Calendar API 添付機能の実装 ([doc](completed/issue-78.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#78](https://github.com/nakagawah13/fishing-forecast-gcal/issues/78) | ✅ Completed |
 | T-013.11b | 1.9 | タイドグラフ画像生成サービスの実装 ([doc](completed/issue-79.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#79](https://github.com/nakagawah13/fishing-forecast-gcal/issues/79) | ✅ Completed |
 | T-013.11c | 1.9 | SyncTideUseCase への画像添付統合 ([doc](completed/issue-80.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#80](https://github.com/nakagawah13/fishing-forecast-gcal/issues/80) | ✅ Completed |
-| T-013.11d | 1.9 | 古い Drive 画像の定期削除コマンド | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81) | ⚪ Not Started |
+| T-013.11d | 1.9 | 古い Drive 画像の定期削除コマンド ([doc](completed/issue-81.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81) | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 

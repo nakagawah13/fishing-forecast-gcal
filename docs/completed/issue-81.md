@@ -1,6 +1,6 @@
 # Issue #81: 古い Drive 画像の定期削除コマンド
 
-## ステータス: In Progress
+## ステータス: ✅ Completed（2026-02-12）
 
 ## 概要
 
@@ -56,3 +56,46 @@ Issue #76（POC）の ST-5 に対応。Drive 容量の逼迫を防止する。
 ## 依存
 
 - `GoogleDriveClient`（ST-1 で実装済み）: `list_files`, `delete_file`, `get_or_create_folder`
+
+---
+
+## 実装結果・変更点
+
+### 新規作成ファイル
+
+| ファイル | 行数 | 概要 |
+|---------|------|------|
+| `src/fishing_forecast_gcal/application/usecases/cleanup_drive_images_usecase.py` | 172行 | `CleanupDriveImagesUseCase` と `CleanupResult` |
+| `tests/unit/application/usecases/test_cleanup_drive_images_usecase.py` | 294行 | UseCase 単体テスト 9件 |
+
+### 変更ファイル
+
+| ファイル | 概要 |
+|---------|------|
+| `src/fishing_forecast_gcal/presentation/cli.py` | `cleanup-images` サブコマンド追加（パーサー + `_run_cleanup_images` 関数） |
+| `tests/unit/presentation/test_cli.py` | CLI テスト 8件追加（パーサー 4件 + main フロー 4件） |
+
+### テスト結果
+
+- 全 396 テストパス（1 skipped、5 deselected）
+- UseCase カバレッジ: 100%
+- CLI カバレッジ: 92%
+- ruff check: ✅ All checks passed
+- pyright: ✅ 0 errors, 0 warnings
+- ruff format: ✅ Applied
+
+### CLI 使用方法
+
+```bash
+# 30日以上前の画像を削除（デフォルト）
+uv run fishing-forecast-gcal cleanup-images
+
+# 保持日数を7日に変更
+uv run fishing-forecast-gcal cleanup-images --retention-days 7
+
+# dry-run で削除対象を確認
+uv run fishing-forecast-gcal cleanup-images --dry-run
+
+# 設定ファイルを指定
+uv run fishing-forecast-gcal cleanup-images --config path/to/config.yaml
+```
