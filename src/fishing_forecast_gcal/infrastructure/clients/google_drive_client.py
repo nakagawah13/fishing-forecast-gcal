@@ -1,9 +1,9 @@
-"""Google Drive API client with OAuth2 authentication.
+"""Google Drive API client.
 
 Google Drive API のラッパークライアント。
 ファイルアップロード、削除、一覧取得、フォルダ管理を提供する。
 
-OAuth2 認証は GoogleCalendarClient と同じ credentials/token を共有する。
+Authentication is delegated to the shared ``google_auth`` module.
 スコープ: ``drive.file``（アプリ作成ファイルのみ、最小権限）
 """
 
@@ -11,19 +11,14 @@ import logging
 import pathlib
 from typing import Any
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-logger = logging.getLogger(__name__)
+from fishing_forecast_gcal.infrastructure.clients.google_auth import (
+    authenticate as _authenticate,
+)
 
-# OAuth2 scopes required for Google Drive + Calendar API
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/drive.file",
-]
+logger = logging.getLogger(__name__)
 
 # Default folder name for tide graph images on Google Drive
 DEFAULT_FOLDER_NAME = "fishing-forecast-tide-graphs"
@@ -40,53 +35,28 @@ class GoogleDriveClient:
         """Initialize Google Drive client.
 
         Args:
-            credentials_path: Path to OAuth2 credentials JSON file
-            token_path: Path to store OAuth2 token JSON file
+            credentials_path: Path to OAuth2 credentials JSON file.
+                              (OAuth2 認証情報 JSON ファイルのパス)
+            token_path: Path to store OAuth2 token JSON file.
+                        (OAuth2 トークン JSON ファイルの保存パス)
         """
-        self.credentials_path = pathlib.Path(credentials_path)
-        self.token_path = pathlib.Path(token_path)
-        self._creds: Credentials | None = None
+        self._credentials_path = credentials_path
+        self._token_path = token_path
         self._service: Any = None
 
     def authenticate(self) -> None:
-        """Perform OAuth2 authentication flow.
+        """Perform OAuth2 authentication and build Drive API service.
 
-        Loads existing token, refreshes if expired, or prompts user
-        for new authorization. Saves token for future use.
+        Delegates the OAuth2 flow to the shared ``google_auth`` module,
+        then builds the Drive API service with the obtained credentials.
+
+        (OAuth2 認証を共通モジュールに委譲し、Drive API サービスを構築する)
 
         Raises:
-            FileNotFoundError: If credentials file does not exist
+            FileNotFoundError: If credentials file does not exist.
         """
-        # Load existing token
-        if self.token_path.exists():
-            self._creds = Credentials.from_authorized_user_file(str(self.token_path), SCOPES)
-
-        # If no valid credentials, perform OAuth flow
-        if not self._creds or not self._creds.valid:
-            if self._creds and self._creds.expired and self._creds.refresh_token:
-                logger.info("Refreshing OAuth token...")
-                self._creds.refresh(Request())
-            else:
-                logger.info("Starting OAuth authentication flow...")
-                if not self.credentials_path.exists():
-                    raise FileNotFoundError(
-                        f"Credentials file not found: {self.credentials_path}\n"
-                        "Please download OAuth2 credentials from Google Cloud Console."
-                    )
-
-                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_path), SCOPES)
-                self._creds = flow.run_local_server(port=0)  # type: ignore[assignment]
-                logger.info("Authentication successful!")
-
-            # Save token for future use
-            assert self._creds is not None
-            self.token_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.token_path, "w") as token_file:
-                token_file.write(self._creds.to_json())
-            logger.info("Token saved to: %s", self.token_path)
-
-        # Build Drive API service
-        self._service = build("drive", "v3", credentials=self._creds)
+        creds = _authenticate(self._credentials_path, self._token_path)
+        self._service = build("drive", "v3", credentials=creds)
 
     def get_service(self) -> Any:
         """Get authenticated Drive API service.

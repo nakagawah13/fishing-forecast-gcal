@@ -794,6 +794,21 @@
 **依存**: T-012
 **詳細ドキュメント**: [docs/completed/issue-90.md](completed/issue-90.md)
 
+#### T-013.13: Google API 認証ロジック共通化 ✅
+**責務**: `GoogleCalendarClient` と `GoogleDriveClient` の重複認証ロジックを共通モジュールに抽出する
+
+**ステータス**: ✅ 完了
+
+**変更内容**:
+- `infrastructure/clients/google_auth.py` を新規作成（共通 `SCOPES` + `authenticate()` 関数）
+- `GoogleCalendarClient.authenticate()` から認証ロジックを除去、`google_auth` に委譲
+- `GoogleDriveClient.authenticate()` から認証ロジックを除去、`google_auth` に委譲
+- `GoogleCalendarClient` 内の `print()` を `logger` に統一
+- テスト更新: パッチパス変更、フィクスチャ簡素化、共通モジュール用テスト8件追加
+
+**依存**: T-013.12
+**詳細ドキュメント**: [docs/completed/issue-91.md](completed/issue-91.md)
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割

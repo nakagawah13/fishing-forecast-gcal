@@ -3,17 +3,18 @@
 Google Drive API の呼び出しをモック化して、クライアントのロジックを検証する。
 """
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from fishing_forecast_gcal.infrastructure.clients.google_auth import SCOPES
 from fishing_forecast_gcal.infrastructure.clients.google_drive_client import (
     DEFAULT_FOLDER_NAME,
-    SCOPES,
     GoogleDriveClient,
 )
+
+_DRIVE_MODULE = "fishing_forecast_gcal.infrastructure.clients.google_drive_client"
 
 
 class TestGoogleDriveClient:
@@ -44,94 +45,34 @@ class TestGoogleDriveClient:
         """認証済みクライアントのフィクスチャ"""
         mock_service = MagicMock()
         client._service = mock_service  # pyright: ignore[reportPrivateUsage]
-        client._creds = MagicMock()  # pyright: ignore[reportPrivateUsage]
         return client
 
 
 class TestAuthentication(TestGoogleDriveClient):
     """認証関連のテスト"""
 
-    def test_authenticate_with_existing_valid_token(
-        self, client: GoogleDriveClient, mock_token_path: Path
-    ) -> None:
-        """既存の有効なトークンで認証する"""
-        mock_token_path.write_text(json.dumps({"token": "mock", "refresh_token": "mock_refresh"}))
-
+    def test_authenticate_delegates_to_google_auth(self, client: GoogleDriveClient) -> None:
+        """認証が google_auth.authenticate に委譲される."""
         with (
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.Credentials"
-            ) as mock_creds_cls,
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.build"
-            ) as mock_build,
+            patch(f"{_DRIVE_MODULE}._authenticate") as mock_auth,
+            patch(f"{_DRIVE_MODULE}.build") as mock_build,
         ):
             mock_creds = MagicMock()
-            mock_creds.valid = True
-            mock_creds_cls.from_authorized_user_file.return_value = mock_creds
+            mock_auth.return_value = mock_creds
+            mock_service = MagicMock()
+            mock_build.return_value = mock_service
 
             client.authenticate()
 
-            mock_creds_cls.from_authorized_user_file.assert_called_once_with(
-                str(mock_token_path), SCOPES
+            mock_auth.assert_called_once_with(
+                client._credentials_path,  # pyright: ignore[reportPrivateUsage]
+                client._token_path,  # pyright: ignore[reportPrivateUsage]
             )
             mock_build.assert_called_once_with("drive", "v3", credentials=mock_creds)
-            assert client._service is not None  # pyright: ignore[reportPrivateUsage]
-
-    def test_authenticate_refreshes_expired_token(
-        self, client: GoogleDriveClient, mock_token_path: Path
-    ) -> None:
-        """期限切れトークンをリフレッシュする"""
-        mock_token_path.write_text(json.dumps({"token": "mock", "refresh_token": "mock_refresh"}))
-
-        with (
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.Credentials"
-            ) as mock_creds_cls,
-            patch("fishing_forecast_gcal.infrastructure.clients.google_drive_client.build"),
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.Request"
-            ) as mock_request,
-        ):
-            mock_creds = MagicMock()
-            mock_creds.valid = False
-            mock_creds.expired = True
-            mock_creds.refresh_token = "mock_refresh"
-            mock_creds.to_json.return_value = '{"token": "refreshed"}'
-            mock_creds_cls.from_authorized_user_file.return_value = mock_creds
-
-            client.authenticate()
-
-            mock_creds.refresh.assert_called_once_with(mock_request())
-
-    def test_authenticate_new_oauth_flow(
-        self, client: GoogleDriveClient, mock_token_path: Path
-    ) -> None:
-        """新規OAuth認証フローを実行する"""
-        with (
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.Credentials"
-            ) as mock_creds_cls,
-            patch("fishing_forecast_gcal.infrastructure.clients.google_drive_client.build"),
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_drive_client.InstalledAppFlow"
-            ) as mock_flow_cls,
-        ):
-            mock_creds_cls.from_authorized_user_file.side_effect = Exception()
-            mock_flow = MagicMock()
-            mock_new_creds = MagicMock()
-            mock_new_creds.valid = True
-            mock_new_creds.to_json.return_value = '{"token": "new"}'
-            mock_flow.run_local_server.return_value = mock_new_creds
-            mock_flow_cls.from_client_secrets_file.return_value = mock_flow
-
-            client.authenticate()
-
-            mock_flow_cls.from_client_secrets_file.assert_called_once()
-            mock_flow.run_local_server.assert_called_once_with(port=0)
-            assert mock_token_path.exists()
+            assert client._service is mock_service  # pyright: ignore[reportPrivateUsage]
 
     def test_authenticate_missing_credentials_file(self, tmp_path: Path) -> None:
-        """credentials.json が存在しない場合はエラー"""
+        """認証情報ファイルが存在しない場合はエラー."""
         client = GoogleDriveClient(
             credentials_path=str(tmp_path / "nonexistent.json"),
             token_path=str(tmp_path / "token.json"),
@@ -141,7 +82,7 @@ class TestAuthentication(TestGoogleDriveClient):
             client.authenticate()
 
     def test_get_service_without_authentication(self, client: GoogleDriveClient) -> None:
-        """認証前に get_service を呼ぶとエラー"""
+        """認証前に get_service を呼ぶとエラー."""
         with pytest.raises(RuntimeError, match="Drive service not initialized"):
             client.get_service()
 
