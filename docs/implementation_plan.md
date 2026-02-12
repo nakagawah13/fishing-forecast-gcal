@@ -830,6 +830,25 @@
 **依存**: T-013.11b
 **詳細ドキュメント**: [docs/completed/issue-92.md](completed/issue-92.md)
 
+#### T-013.15: TideDataRepository のドメインロジック分離と DI 改善 ✅
+**責務**: `TideDataRepository` 内の月齢計算・潮位差計算ロジックを Domain 層に分離し、コンストラクタ DI を完全化する
+
+**ステータス**: ✅ 完了
+
+**変更内容**:
+- `domain/services/moon_age_calculator.py` に `MoonAgeCalculator` を新規作成（月齢計算ロジックをリポジトリから分離）
+- `domain/services/tide_calculation_service.py` に `calculate_tide_range()` 静的メソッドを追加
+- `TideDataRepository` コンストラクタを DI 化（`tide_calc_service`, `tide_type_classifier`, `prime_time_finder`, `moon_age_calculator` を Optional 引数で注入）
+- CLI `sync_tide.py` で明示的な DI 構築を実装
+- 単体テスト 11 件追加、統合テストフィクスチャ更新
+
+**テスト結果**:
+- 441 passed, 1 skipped
+- ruff / pyright: 0 errors
+
+**依存**: T-013.14
+**詳細ドキュメント**: [docs/completed/issue-93.md](completed/issue-93.md)
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割
