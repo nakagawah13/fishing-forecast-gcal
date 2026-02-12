@@ -1,6 +1,6 @@
 # Issue #80: SyncTideUseCase への画像添付統合
 
-## ステータス: In Progress
+## ステータス: Completed
 
 ## 概要
 
