@@ -921,6 +921,32 @@
 **依存**: T-005, T-010
 **Issue**: [#101](https://github.com/nakagawah13/fishing-forecast-gcal/issues/101)
 
+#### T-013.18: Drive 画像の冪等アップロード（重複防止）
+**責務**: `sync-tide` 複数回実行時に Google Drive 上のタイドグラフ画像が重複保存される問題を修正
+
+**ステータス**: ✅ 完了
+
+**背景**:
+- `GoogleDriveClient.upload_file()` が `files().create()` で常に新規ファイルを作成していた
+- Google Drive は同名ファイルの共存を許容するため、実行ごとに重複が増殖
+- カレンダーイベント側は `upsert_event` で冪等性を担保済みだが、Drive 側は未対応だった
+
+**変更内容**:
+- `GoogleDriveClient` に `upload_or_update_file()` メソッドを追加
+  - フォルダ内で同名ファイルを検索し、存在すれば `files().update()` で上書き
+  - 存在しなければ従来通り `files().create()` で新規作成
+- `SyncTideUseCase._generate_and_upload_graph()` の呼び出しを変更
+
+**テスト要件**:
+- 同名ファイルありの場合に update が呼ばれること ✅
+- 同名ファイルなしの場合に create が呼ばれること ✅
+- UseCase 側で新メソッドが呼ばれることの確認 ✅
+
+**依存**: T-013.11c
+**Issue**: [#104](https://github.com/nakagawah13/fishing-forecast-gcal/issues/104)
+
+---
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割

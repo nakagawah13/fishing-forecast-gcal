@@ -1,6 +1,6 @@
 # Issue #104: sync-tide の複数回実行で Google Drive にタイドグラフ画像が重複保存される
 
-## ステータス: In Progress
+## ステータス: Completed
 
 ## 概要
 
@@ -59,3 +59,24 @@
 2. **ユニットテスト**: UseCase 側で新メソッドが呼ばれることの確認
 3. **ruff / pyright**: 静的解析パス
 4. **手動テスト**: `sync-tide` の複数回実行で Drive 上に重複が発生しないことを確認
+
+## 実装結果・変更点
+
+### 実施内容
+
+- `GoogleDriveClient` に `upload_or_update_file()` メソッドを追加
+  - フォルダ内で同名ファイルを `files().list()` で検索
+  - 存在すれば `files().update()` で上書き更新（権限設定は既存を維持）
+  - 存在しなければ `files().create()` で新規作成＋公開読み取り権限を設定
+- `SyncTideUseCase._generate_and_upload_graph()` の呼び出しを `upload_file()` → `upload_or_update_file()` に変更
+- ユニットテスト 5 件を追加（新規作成、既存更新、ファイル未存在エラー、folder_id なし、URL フォーマット確認）
+- テストモック 3 箇所を `upload_or_update_file` に更新
+
+### テスト結果
+
+| 種別 | 対象 | 結果 |
+|------|------|------|
+| ユニットテスト | 452 件 | ✅ Pass |
+| Lint | ruff check | ✅ Pass |
+| フォーマット | ruff format | ✅ Pass |
+| 型チェック | pyright | ✅ Pass |
