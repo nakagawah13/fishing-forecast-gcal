@@ -5,6 +5,7 @@ Mockリポジトリを使用して、外部依存なしにロジックを検証�
 """
 
 from datetime import UTC, date, datetime
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -530,3 +531,330 @@ class TestSyncTideUseCase:
 
         assert "⭐ 中央日" not in event.description
         assert "[TIDE]" in event.description
+
+
+class TestSyncTideUseCaseTideGraph:
+    """タイドグラフ画像の生成・アップロード統合テスト"""
+
+    @pytest.fixture
+    def location(self) -> Location:
+        """テスト用の地点データ"""
+        return Location(
+            id="tokyo",
+            name="東京湾",
+            latitude=35.6762,
+            longitude=139.6503,
+            station_id="TK",
+        )
+
+    @pytest.fixture
+    def target_date(self) -> date:
+        """テスト用の対象日"""
+        return date(2026, 2, 10)
+
+    @pytest.fixture
+    def tide_data(self) -> Tide:
+        """テスト用の潮汐データ（時合い帯あり）"""
+        return Tide(
+            date=date(2026, 2, 10),
+            tide_type=TideType.SPRING,
+            events=[
+                TideEvent(
+                    time=datetime(2026, 2, 10, 6, 12, tzinfo=UTC),
+                    height_cm=162.0,
+                    event_type="high",
+                ),
+                TideEvent(
+                    time=datetime(2026, 2, 10, 12, 34, tzinfo=UTC),
+                    height_cm=58.0,
+                    event_type="low",
+                ),
+            ],
+            prime_time_start=datetime(2026, 2, 10, 4, 12, tzinfo=UTC),
+            prime_time_end=datetime(2026, 2, 10, 8, 12, tzinfo=UTC),
+        )
+
+    @pytest.fixture
+    def mock_tide_repo(self, tide_data: Tide, target_date: date) -> Mock:
+        """Mockの潮汐データリポジトリ"""
+        repo = Mock()
+
+        def get_tide_data_side_effect(location: Location, d: date) -> Tide:
+            if d == target_date:
+                return tide_data
+            return Tide(
+                date=d,
+                tide_type=TideType.SPRING,
+                events=[
+                    TideEvent(
+                        time=datetime(d.year, d.month, d.day, 6, 0, tzinfo=UTC),
+                        height_cm=160.0,
+                        event_type="high",
+                    ),
+                ],
+                prime_time_start=None,
+                prime_time_end=None,
+            )
+
+        repo.get_tide_data.side_effect = get_tide_data_side_effect
+        repo.get_hourly_heights.return_value = [
+            (0.0, 100.0),
+            (6.0, 162.0),
+            (12.0, 58.0),
+            (18.0, 155.0),
+            (24.0, 100.0),
+        ]
+        return repo
+
+    @pytest.fixture
+    def mock_calendar_repo(self) -> Mock:
+        """Mockのカレンダーリポジトリ"""
+        repo = Mock()
+        repo.get_event.return_value = None
+        return repo
+
+    @pytest.fixture
+    def mock_tide_graph_service(self, tmp_path: Path) -> Mock:
+        """Mockのタイドグラフサービス"""
+        service = Mock()
+        image_path = tmp_path / "tide_tokyo_20260210.png"
+        image_path.write_bytes(b"fake-png-data")
+        service.generate_graph.return_value = image_path
+        return service
+
+    @pytest.fixture
+    def mock_drive_client(self) -> Mock:
+        """MockのGoogleDriveクライアント"""
+        client = Mock()
+        client.get_or_create_folder.return_value = "folder-id-123"
+        client.upload_file.return_value = {
+            "file_id": "file-id-456",
+            "file_url": "https://drive.google.com/file/d/file-id-456/view?usp=drivesdk",
+        }
+        return client
+
+    def test_graph_enabled_generates_and_uploads(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_tide_graph_service: Mock,
+        mock_drive_client: Mock,
+        location: Location,
+        target_date: date,
+    ) -> None:
+        """画像機能有効時、生成→アップロード→attachments付きで登録される"""
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_tide_graph_service,
+            drive_client=mock_drive_client,
+            drive_folder_name="test-folder",
+        )
+
+        usecase.execute(location, target_date)
+
+        # タイドグラフが生成された
+        mock_tide_graph_service.generate_graph.assert_called_once()
+        call_kwargs = mock_tide_graph_service.generate_graph.call_args[1]
+        assert call_kwargs["target_date"] == target_date
+        assert call_kwargs["location_name"] == "東京湾"
+        assert call_kwargs["location_id"] == "tokyo"
+        assert call_kwargs["tide_type"] == TideType.SPRING
+        assert call_kwargs["prime_time"] is not None
+
+        # hourly_heights が取得された
+        mock_tide_repo.get_hourly_heights.assert_called_once_with(location, target_date)
+
+        # Drive にアップロードされた
+        mock_drive_client.get_or_create_folder.assert_called_once_with("test-folder")
+        mock_drive_client.upload_file.assert_called_once()
+
+        # upsert_event に attachments が渡された
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        attachments = call_kwargs.get("attachments")
+        assert attachments is not None
+        assert len(attachments) == 1
+        assert attachments[0]["mimeType"] == "image/png"
+        assert "drive.google.com" in attachments[0]["fileUrl"]
+
+    def test_graph_disabled_no_attachment(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        location: Location,
+        target_date: date,
+    ) -> None:
+        """画像機能無効時（デフォルト）、attachments なしで登録される"""
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+        )
+
+        usecase.execute(location, target_date)
+
+        # タイドグラフ関連は呼ばれない
+        mock_tide_repo.get_hourly_heights.assert_not_called()
+
+        # upsert_event に attachments=None が渡された
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        assert call_kwargs.get("attachments") is None
+
+    def test_graph_generation_failure_continues_without_attachment(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_drive_client: Mock,
+        location: Location,
+        target_date: date,
+    ) -> None:
+        """画像生成が失敗しても、attachments なしでイベント登録は継続される"""
+        mock_graph_service = Mock()
+        mock_graph_service.generate_graph.side_effect = RuntimeError("Font not found")
+
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_graph_service,
+            drive_client=mock_drive_client,
+        )
+
+        usecase.execute(location, target_date)
+
+        # upsert_event は呼ばれている（attachments なし）
+        mock_calendar_repo.upsert_event.assert_called_once()
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        assert call_kwargs.get("attachments") is None
+
+    def test_drive_upload_failure_continues_without_attachment(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_tide_graph_service: Mock,
+        location: Location,
+        target_date: date,
+    ) -> None:
+        """Driveアップロードが失敗しても、attachments なしでイベント登録は継続される"""
+        mock_drive = Mock()
+        mock_drive.get_or_create_folder.return_value = "folder-id"
+        mock_drive.upload_file.side_effect = RuntimeError("Network error")
+
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_tide_graph_service,
+            drive_client=mock_drive,
+        )
+
+        usecase.execute(location, target_date)
+
+        # upsert_event は呼ばれている（attachments なし）
+        mock_calendar_repo.upsert_event.assert_called_once()
+        call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
+        assert call_kwargs.get("attachments") is None
+
+    def test_notes_preserved_with_graph_attachment(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_tide_graph_service: Mock,
+        mock_drive_client: Mock,
+        location: Location,
+        target_date: date,
+    ) -> None:
+        """既存 NOTES と画像添付が同時に正しく処理される"""
+        expected_event_id = CalendarEvent.generate_event_id(location.id, target_date)
+        existing_event = CalendarEvent(
+            event_id=expected_event_id,
+            title="🔴東京湾 (大潮)",
+            description="[TIDE]\n古いデータ\n\n[FORECAST]\n\n[NOTES]\nユーザーメモ",
+            date=target_date,
+            location_id=location.id,
+        )
+        mock_calendar_repo.get_event.return_value = existing_event
+
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_tide_graph_service,
+            drive_client=mock_drive_client,
+        )
+
+        usecase.execute(location, target_date)
+
+        # NOTES が保持されている
+        call_args = mock_calendar_repo.upsert_event.call_args
+        event: CalendarEvent = call_args[0][0]
+        assert "ユーザーメモ" in event.description
+
+        # attachments も渡されている
+        call_kwargs = call_args[1]
+        assert call_kwargs.get("attachments") is not None
+        assert len(call_kwargs["attachments"]) == 1
+
+    def test_temp_file_cleaned_up_after_upload(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_drive_client: Mock,
+        location: Location,
+        target_date: date,
+        tmp_path: Path,
+    ) -> None:
+        """アップロード後に一時ファイルが削除される"""
+        image_path = tmp_path / "tide_tokyo_20260210.png"
+        image_path.write_bytes(b"fake-png-data")
+
+        mock_graph_service = Mock()
+        mock_graph_service.generate_graph.return_value = image_path
+
+        usecase = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_graph_service,
+            drive_client=mock_drive_client,
+        )
+
+        usecase.execute(location, target_date)
+
+        # 一時ファイルが削除されている
+        assert not image_path.exists()
+
+    def test_tide_graph_enabled_property(
+        self,
+        mock_tide_repo: Mock,
+        mock_calendar_repo: Mock,
+        mock_tide_graph_service: Mock,
+        mock_drive_client: Mock,
+    ) -> None:
+        """_tide_graph_enabled プロパティが両方注入時のみ True を返す"""
+        # 両方あり → True
+        uc_both = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_tide_graph_service,
+            drive_client=mock_drive_client,
+        )
+        assert uc_both._tide_graph_enabled is True
+
+        # graph_service のみ → False
+        uc_graph_only = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            tide_graph_service=mock_tide_graph_service,
+        )
+        assert uc_graph_only._tide_graph_enabled is False
+
+        # drive_client のみ → False
+        uc_drive_only = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+            drive_client=mock_drive_client,
+        )
+        assert uc_drive_only._tide_graph_enabled is False
+
+        # 両方なし → False
+        uc_none = SyncTideUseCase(
+            tide_repo=mock_tide_repo,
+            calendar_repo=mock_calendar_repo,
+        )
+        assert uc_none._tide_graph_enabled is False

@@ -126,6 +126,51 @@ class TideDataRepository(ITideDataRepository):
             logger.error(f"Failed to fetch tide data for {location.name}: {e}")
             raise RuntimeError(f"Failed to fetch tide data: {e}") from e
 
+    def get_hourly_heights(
+        self, location: Location, target_date: date
+    ) -> list[tuple[float, float]]:
+        """Get hourly heights for graph generation.
+
+        TideCalculationAdapter から時系列潮位データを取得し、
+        (hour_float, height_cm) 形式に変換して返します。
+
+        Args:
+            location: Target location.
+            target_date: Target date.
+
+        Returns:
+            list[tuple[float, float]]: (hour 0.0-24.0, height_cm) pairs.
+
+        Raises:
+            FileNotFoundError: If harmonic coefficient file is missing.
+            RuntimeError: If data retrieval fails.
+        """
+        logger.info(f"Fetching hourly heights for {location.name} on {target_date}")
+
+        try:
+            raw_data = self._adapter.calculate_tide(location, target_date)
+
+            # datetime を hour float (0.0-24.0) に変換し、対象日のデータのみフィルタ
+            hourly_heights: list[tuple[float, float]] = []
+            for dt, height in raw_data:
+                # タイムゾーンを考慮して日付を比較
+                local_date = dt.date()
+                if local_date == target_date:
+                    hour_float = dt.hour + dt.minute / 60.0
+                    hourly_heights.append((hour_float, height))
+
+            if not hourly_heights:
+                raise RuntimeError(f"No hourly heights found for {location.name} on {target_date}")
+
+            logger.debug(f"Converted {len(hourly_heights)} data points to hourly heights")
+            return hourly_heights
+
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get hourly heights for {location.name}: {e}")
+            raise RuntimeError(f"Failed to get hourly heights: {e}") from e
+
     def _calculate_moon_age(self, target_date: date) -> float:
         """月齢を計算
 

@@ -13,11 +13,15 @@ from typing import TYPE_CHECKING
 
 from fishing_forecast_gcal.application.usecases.reset_tide_usecase import ResetTideUseCase
 from fishing_forecast_gcal.application.usecases.sync_tide_usecase import SyncTideUseCase
+from fishing_forecast_gcal.domain.services.tide_graph_service import TideGraphService
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
 from fishing_forecast_gcal.infrastructure.clients.google_calendar_client import (
     GoogleCalendarClient,
+)
+from fishing_forecast_gcal.infrastructure.clients.google_drive_client import (
+    GoogleDriveClient,
 )
 from fishing_forecast_gcal.infrastructure.repositories.calendar_repository import (
     CalendarRepository,
@@ -29,7 +33,7 @@ from fishing_forecast_gcal.presentation.config_loader import load_config
 
 if TYPE_CHECKING:
     from fishing_forecast_gcal.domain.models.location import Location
-    from fishing_forecast_gcal.presentation.config_loader import AppSettings
+    from fishing_forecast_gcal.presentation.config_loader import AppConfig, AppSettings
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +275,7 @@ def main() -> None:
 
         # コマンド別処理
         if args.command == "sync-tide":
-            _run_sync_tide(args, settings, target_locations, start_date, end_date)
+            _run_sync_tide(args, config, target_locations, start_date, end_date)
         elif args.command == "reset-tide":
             _run_reset_tide(args, settings, target_locations, start_date, end_date)
 
@@ -286,7 +290,7 @@ def main() -> None:
 
 def _run_sync_tide(
     args: argparse.Namespace,
-    settings: "AppSettings",
+    config: "AppConfig",
     target_locations: list["Location"],
     start_date: date,
     end_date: date,
@@ -297,11 +301,12 @@ def _run_sync_tide(
 
     Args:
         args: Parsed CLI arguments
-        settings: Application settings
+        config: Application configuration
         target_locations: List of target locations
         start_date: Start date (inclusive)
         end_date: End date (inclusive)
     """
+    settings = config.settings
     if args.dry_run:
         logger.warning("[DRY-RUN] No events will be created")
 
@@ -325,10 +330,31 @@ def _run_sync_tide(
         calendar_id=settings.calendar_id,
     )
 
+    # タイドグラフ関連の依存（有効な場合のみ構築）
+    tide_graph_service: TideGraphService | None = None
+    drive_client: GoogleDriveClient | None = None
+    drive_folder_name: str = "fishing-forecast-tide-graphs"
+
+    if config.tide_graph.enabled:
+        logger.info("Tide graph attachment is enabled")
+        tide_graph_service = TideGraphService()
+
+        drive_client = GoogleDriveClient(
+            credentials_path=settings.google_credentials_path,
+            token_path=settings.google_token_path,
+        )
+        drive_client.authenticate()
+        logger.info("Google Drive authentication successful")
+
+        drive_folder_name = config.tide_graph.drive_folder_name
+
     # UseCase
     sync_usecase = SyncTideUseCase(
         tide_repo=tide_repo,
         calendar_repo=calendar_repo,
+        tide_graph_service=tide_graph_service,
+        drive_client=drive_client,
+        drive_folder_name=drive_folder_name,
     )
 
     # メイン処理

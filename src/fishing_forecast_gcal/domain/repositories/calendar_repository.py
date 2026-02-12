@@ -43,7 +43,13 @@ class ICalendarRepository(ABC):
         ...
 
     @abstractmethod
-    def upsert_event(self, event: CalendarEvent, *, existing: CalendarEvent | None = None) -> None:
+    def upsert_event(
+        self,
+        event: CalendarEvent,
+        *,
+        existing: CalendarEvent | None = None,
+        attachments: list[dict[str, str]] | None = None,
+    ) -> None:
         """Create or update a calendar event (idempotent).
 
         同一IDのイベントが存在する場合は更新、存在しない場合は新規作成します。
@@ -57,6 +63,9 @@ class ICalendarRepository(ABC):
                 a redundant API request. Pass None (default) to let upsert_event
                 perform its own existence check.
                 (事前取得済みの既存イベント。渡された場合は内部の get_event() をスキップ)
+            attachments (list[dict[str, str]] | None): File attachments for the event.
+                Each dict should have 'fileUrl', 'title', 'mimeType' keys.
+                (イベントに添付するファイル情報のリスト)
 
         Raises:
             RuntimeError: If API call fails (認証エラー、ネットワークエラー等).

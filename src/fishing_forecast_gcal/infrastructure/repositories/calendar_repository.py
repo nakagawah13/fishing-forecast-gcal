@@ -62,7 +62,13 @@ class CalendarRepository(ICalendarRepository):
         except Exception as e:
             raise RuntimeError(f"Failed to get event: {e}") from e
 
-    def upsert_event(self, event: CalendarEvent, *, existing: CalendarEvent | None = None) -> None:
+    def upsert_event(
+        self,
+        event: CalendarEvent,
+        *,
+        existing: CalendarEvent | None = None,
+        attachments: list[dict[str, str]] | None = None,
+    ) -> None:
         """Create or update a calendar event (idempotent).
 
         同一IDのイベントが存在する場合は更新、存在しない場合は新規作成します。
@@ -74,6 +80,9 @@ class CalendarRepository(ICalendarRepository):
                 When provided, skips the internal get_event() call.
                 Pass None (default) to let this method check existence itself.
                 (事前取得済みの既存イベント。渡された場合は内部 get_event() をスキップ)
+            attachments (list[dict[str, str]] | None): File attachments.
+                Each dict should have 'fileUrl', 'title', 'mimeType' keys.
+                (イベントに添付するファイル情報のリスト)
 
         Raises:
             RuntimeError: If API call fails (API呼び出しに失敗した場合).
@@ -96,6 +105,7 @@ class CalendarRepository(ICalendarRepository):
                     end_date=self._get_next_day(event.date),
                     timezone=self.timezone,
                     extended_properties=extended_props,
+                    attachments=attachments,
                 )
             else:
                 # 新規イベントを作成
@@ -108,6 +118,7 @@ class CalendarRepository(ICalendarRepository):
                     end_date=self._get_next_day(event.date),
                     timezone=self.timezone,
                     extended_properties=extended_props,
+                    attachments=attachments,
                 )
 
         except Exception as e:

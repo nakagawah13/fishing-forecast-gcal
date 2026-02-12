@@ -64,6 +64,13 @@ class TestITideDataRepositoryMock:
                     ],
                 )
 
+            @override
+            def get_hourly_heights(
+                self, location: Location, target_date: date
+            ) -> list[tuple[float, float]]:
+                """固定値を返すMock実装"""
+                return [(0.0, 100.0), (6.0, 162.0), (12.0, 58.0)]
+
         # Mock実装をインスタンス化
         repository = MockTideDataRepository()
 
