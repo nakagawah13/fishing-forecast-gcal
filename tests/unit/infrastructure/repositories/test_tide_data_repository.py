@@ -11,6 +11,10 @@ import pytest
 
 from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.domain.models.tide import Tide, TideType
+from fishing_forecast_gcal.domain.services.moon_age_calculator import MoonAgeCalculator
+from fishing_forecast_gcal.domain.services.prime_time_finder import PrimeTimeFinder
+from fishing_forecast_gcal.domain.services.tide_calculation_service import TideCalculationService
+from fishing_forecast_gcal.domain.services.tide_type_classifier import TideTypeClassifier
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -29,8 +33,14 @@ class TestTideDataRepository:
 
     @pytest.fixture
     def repository(self, mock_adapter: Mock) -> TideDataRepository:
-        """リポジトリのフィクスチャ"""
-        return TideDataRepository(adapter=mock_adapter)
+        """リポジトリのフィクスチャ（DI注入あり）"""
+        return TideDataRepository(
+            adapter=mock_adapter,
+            tide_calc_service=TideCalculationService(),
+            tide_type_classifier=TideTypeClassifier(),
+            prime_time_finder=PrimeTimeFinder(),
+            moon_age_calculator=MoonAgeCalculator(),
+        )
 
     @pytest.fixture
     def sample_location(self) -> Location:
@@ -201,90 +211,32 @@ class TestTideDataRepository:
 
         assert "No high/low tide events found" in str(exc_info.value)
 
-    def test_calculate_moon_age(self, repository: TideDataRepository) -> None:
-        """月齢計算のテスト
+    def test_default_di_instances_created(self) -> None:
+        """デフォルトDI: 引数なしでもインスタンスが作成されること"""
+        mock_adapter = Mock(spec=TideCalculationAdapter)
+        repo = TideDataRepository(adapter=mock_adapter)
+        # Internal services should be auto-created
+        assert repo._calculation_service is not None
+        assert repo._type_classifier is not None
+        assert repo._prime_time_finder is not None
+        assert repo._moon_age_calculator is not None
 
-        Note:
-            基準新月は2000年1月6日 18:14 UTCです。
-            計算は対象日の00:00 UTCで行われるため、
-            同日の計算では約18時間分の誤差が生じます（約0.75日分）。
-        """
-        # 2000年1月6日（基準新月の日付）
-        # 00:00時点では新月の約18時間前なので、月齢は約29日付近
-        moon_age_ref = repository._calculate_moon_age(date(2000, 1, 6))  # type: ignore[reportPrivateUsage]
-        assert 28 < moon_age_ref < 30  # 前日の新月周期末期
+    def test_custom_di_instances_used(self) -> None:
+        """カスタムDI: 注入したインスタンスが使用されること"""
+        mock_adapter = Mock(spec=TideCalculationAdapter)
+        custom_calc = TideCalculationService()
+        custom_classifier = TideTypeClassifier()
+        custom_finder = PrimeTimeFinder()
+        custom_moon = MoonAgeCalculator()
 
-        # 約15日後は満月（月齢15）
-        moon_age_full = repository._calculate_moon_age(date(2000, 1, 21))  # type: ignore[reportPrivateUsage]
-        assert 14 < moon_age_full < 16  # 満月付近
-
-        # 約30日後（2000年2月5日）は次の新月周期末期（月齢約29）
-        # 2000-01-06 18:14 から 2000-02-05 00:00 は約29.24日後
-        moon_age_next = repository._calculate_moon_age(date(2000, 2, 5))  # type: ignore[reportPrivateUsage]
-        assert 28 < moon_age_next < 30  # 新月周期末期
-
-        # 2000年1月7日（基準新月の翌日）は月齢約1
-        moon_age_day_after = repository._calculate_moon_age(date(2000, 1, 7))  # type: ignore[reportPrivateUsage]
-        assert 0 < moon_age_day_after < 2  # 新月直後
-
-        # 2000年2月6日（基準新月から約30.24日後）は新月直後
-        moon_age_next_new = repository._calculate_moon_age(date(2000, 2, 6))  # type: ignore[reportPrivateUsage]
-        assert 0 <= moon_age_next_new < 2  # 次の新月直後
-
-    def test_calculate_tide_range(self, repository: TideDataRepository) -> None:
-        """潮位差計算のテスト"""
-        # Arrange
-        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
-        from fishing_forecast_gcal.domain.models.tide import TideEvent
-
-        events = [
-            TideEvent(time=base.replace(hour=3), height_cm=150.0, event_type="high"),
-            TideEvent(time=base.replace(hour=9), height_cm=50.0, event_type="low"),
-            TideEvent(time=base.replace(hour=15), height_cm=160.0, event_type="high"),
-            TideEvent(time=base.replace(hour=21), height_cm=55.0, event_type="low"),
-        ]
-
-        # Act
-        tide_range = repository._calculate_tide_range(events)  # type: ignore[reportPrivateUsage]
-
-        # Assert
-        # 最大満潮(160) - 最小干潮(50) = 110
-        assert tide_range == 110.0
-
-    def test_calculate_tide_range_no_high_tide(
-        self,
-        repository: TideDataRepository,
-    ) -> None:
-        """潮位差計算: 満潮がない場合"""
-        # Arrange
-        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
-        from fishing_forecast_gcal.domain.models.tide import TideEvent
-
-        events = [
-            TideEvent(time=base.replace(hour=9), height_cm=50.0, event_type="low"),
-        ]
-
-        # Act
-        tide_range = repository._calculate_tide_range(events)  # type: ignore[reportPrivateUsage]
-
-        # Assert
-        assert tide_range == 0.0
-
-    def test_calculate_tide_range_no_low_tide(
-        self,
-        repository: TideDataRepository,
-    ) -> None:
-        """潮位差計算: 干潮がない場合"""
-        # Arrange
-        base = datetime(2026, 2, 8, 0, 0, tzinfo=UTC)
-        from fishing_forecast_gcal.domain.models.tide import TideEvent
-
-        events = [
-            TideEvent(time=base.replace(hour=3), height_cm=150.0, event_type="high"),
-        ]
-
-        # Act
-        tide_range = repository._calculate_tide_range(events)  # type: ignore[reportPrivateUsage]  # type: ignore[reportPrivateUsage]
-
-        # Assert
-        assert tide_range == 0.0
+        repo = TideDataRepository(
+            adapter=mock_adapter,
+            tide_calc_service=custom_calc,
+            tide_type_classifier=custom_classifier,
+            prime_time_finder=custom_finder,
+            moon_age_calculator=custom_moon,
+        )
+        assert repo._calculation_service is custom_calc
+        assert repo._type_classifier is custom_classifier
+        assert repo._prime_time_finder is custom_finder
+        assert repo._moon_age_calculator is custom_moon
