@@ -5,6 +5,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from fishing_forecast_gcal.application.usecases.cleanup_drive_images_usecase import (
+    CleanupResult,
+)
 from fishing_forecast_gcal.application.usecases.reset_tide_usecase import ResetResult
 from fishing_forecast_gcal.presentation.cli import (
     main,
@@ -836,3 +839,267 @@ class TestMainResetTide:
 
         # UseCase が実行されたことを検証
         mock_usecase.execute.assert_called_once()
+
+
+class TestParseArgsCleanupImages:
+    """cleanup-images サブコマンドの引数解析テスト"""
+
+    def test_parse_args_cleanup_images_minimal(self) -> None:
+        """cleanup-images サブコマンドの最小限の引数"""
+        with patch("sys.argv", ["prog", "cleanup-images"]):
+            args = parse_args()
+
+        assert args.command == "cleanup-images"
+        assert args.config == "config/config.yaml"
+        assert args.retention_days == 30
+        assert args.dry_run is False
+        assert args.verbose is False
+
+    def test_parse_args_cleanup_images_all_options(self) -> None:
+        """cleanup-images サブコマンドのすべてのオプション指定"""
+        with patch(
+            "sys.argv",
+            [
+                "prog",
+                "cleanup-images",
+                "--config",
+                "custom.yaml",
+                "--retention-days",
+                "7",
+                "--dry-run",
+                "--verbose",
+            ],
+        ):
+            args = parse_args()
+
+        assert args.command == "cleanup-images"
+        assert args.config == "custom.yaml"
+        assert args.retention_days == 7
+        assert args.dry_run is True
+        assert args.verbose is True
+
+    def test_parse_args_cleanup_images_retention_days_zero_error(self) -> None:
+        """--retention-days 0 でエラー"""
+        with patch("sys.argv", ["prog", "cleanup-images", "--retention-days", "0"]):
+            with pytest.raises(SystemExit):
+                parse_args()
+
+    def test_parse_args_cleanup_images_retention_days_negative_error(self) -> None:
+        """--retention-days に負の値でエラー"""
+        with patch("sys.argv", ["prog", "cleanup-images", "--retention-days", "-5"]):
+            with pytest.raises(SystemExit):
+                parse_args()
+
+
+class TestMainCleanupImages:
+    """main 関数の cleanup-images コマンドテスト"""
+
+    def _create_mock_args(
+        self,
+        *,
+        retention_days: int = 30,
+        dry_run: bool = False,
+    ) -> Mock:
+        """Create mock args for cleanup-images command.
+
+        cleanup-images コマンド用のMock引数を生成します。
+        """
+        mock_args = Mock()
+        mock_args.command = "cleanup-images"
+        mock_args.config = "config/config.yaml"
+        mock_args.retention_days = retention_days
+        mock_args.dry_run = dry_run
+        mock_args.verbose = False
+        return mock_args
+
+    def _create_mock_config(self) -> Mock:
+        """Create mock config for cleanup-images.
+
+        Mock設定オブジェクトを生成します。
+
+        Returns:
+            Mock config object
+        """
+        mock_settings = Mock()
+        mock_settings.timezone = "Asia/Tokyo"
+        mock_settings.calendar_id = "test-calendar-id-12345"
+        mock_settings.tide_register_months = 1
+        mock_settings.google_credentials_path = "creds.json"
+        mock_settings.google_token_path = "token.json"
+
+        mock_tide_graph = Mock()
+        mock_tide_graph.enabled = True
+        mock_tide_graph.drive_folder_name = "fishing-forecast-tide-graphs"
+
+        mock_config = Mock()
+        mock_config.settings = mock_settings
+        mock_config.locations = []
+        mock_config.tide_graph = mock_tide_graph
+
+        return mock_config
+
+    @patch("fishing_forecast_gcal.presentation.cli.parse_args")
+    @patch("fishing_forecast_gcal.presentation.cli.setup_logging")
+    @patch("fishing_forecast_gcal.presentation.cli.load_config")
+    @patch("fishing_forecast_gcal.presentation.cli.GoogleDriveClient")
+    @patch("fishing_forecast_gcal.presentation.cli.CleanupDriveImagesUseCase")
+    @patch("fishing_forecast_gcal.presentation.cli.Path")
+    def test_main_cleanup_images_basic_flow(
+        self,
+        mock_path: Mock,
+        mock_usecase_class: Mock,
+        mock_drive_client_class: Mock,
+        mock_load_config: Mock,
+        mock_setup_logging: Mock,
+        mock_parse_args: Mock,
+    ) -> None:
+        """基本的な処理フロー"""
+        mock_parse_args.return_value = self._create_mock_args()
+
+        mock_config_path = Mock()
+        mock_config_path.exists.return_value = True
+        mock_path.return_value = mock_config_path
+
+        mock_config = self._create_mock_config()
+        mock_load_config.return_value = mock_config
+
+        mock_drive_client = Mock()
+        mock_drive_client_class.return_value = mock_drive_client
+
+        mock_usecase = Mock()
+        mock_usecase.execute.return_value = CleanupResult(
+            total_found=5, total_expired=2, total_deleted=2, total_failed=0
+        )
+        mock_usecase_class.return_value = mock_usecase
+
+        main()
+
+        mock_drive_client.authenticate.assert_called_once()
+        mock_usecase.execute.assert_called_once_with(
+            folder_name="fishing-forecast-tide-graphs",
+            retention_days=30,
+            dry_run=False,
+        )
+
+    @patch("fishing_forecast_gcal.presentation.cli.parse_args")
+    @patch("fishing_forecast_gcal.presentation.cli.setup_logging")
+    @patch("fishing_forecast_gcal.presentation.cli.load_config")
+    @patch("fishing_forecast_gcal.presentation.cli.GoogleDriveClient")
+    @patch("fishing_forecast_gcal.presentation.cli.CleanupDriveImagesUseCase")
+    @patch("fishing_forecast_gcal.presentation.cli.Path")
+    def test_main_cleanup_images_dry_run(
+        self,
+        mock_path: Mock,
+        mock_usecase_class: Mock,
+        mock_drive_client_class: Mock,
+        mock_load_config: Mock,
+        mock_setup_logging: Mock,
+        mock_parse_args: Mock,
+    ) -> None:
+        """dry-run モードで削除しない"""
+        mock_parse_args.return_value = self._create_mock_args(dry_run=True)
+
+        mock_config_path = Mock()
+        mock_config_path.exists.return_value = True
+        mock_path.return_value = mock_config_path
+
+        mock_config = self._create_mock_config()
+        mock_load_config.return_value = mock_config
+
+        mock_drive_client = Mock()
+        mock_drive_client_class.return_value = mock_drive_client
+
+        mock_usecase = Mock()
+        mock_usecase.execute.return_value = CleanupResult(
+            total_found=3, total_expired=1, total_deleted=0, total_failed=0
+        )
+        mock_usecase_class.return_value = mock_usecase
+
+        main()
+
+        mock_usecase.execute.assert_called_once_with(
+            folder_name="fishing-forecast-tide-graphs",
+            retention_days=30,
+            dry_run=True,
+        )
+
+    @patch("fishing_forecast_gcal.presentation.cli.parse_args")
+    @patch("fishing_forecast_gcal.presentation.cli.setup_logging")
+    @patch("fishing_forecast_gcal.presentation.cli.load_config")
+    @patch("fishing_forecast_gcal.presentation.cli.GoogleDriveClient")
+    @patch("fishing_forecast_gcal.presentation.cli.CleanupDriveImagesUseCase")
+    @patch("fishing_forecast_gcal.presentation.cli.Path")
+    def test_main_cleanup_images_with_failures_exits_1(
+        self,
+        mock_path: Mock,
+        mock_usecase_class: Mock,
+        mock_drive_client_class: Mock,
+        mock_load_config: Mock,
+        mock_setup_logging: Mock,
+        mock_parse_args: Mock,
+    ) -> None:
+        """削除失敗時に exit code 1 で終了"""
+        mock_parse_args.return_value = self._create_mock_args()
+
+        mock_config_path = Mock()
+        mock_config_path.exists.return_value = True
+        mock_path.return_value = mock_config_path
+
+        mock_config = self._create_mock_config()
+        mock_load_config.return_value = mock_config
+
+        mock_drive_client = Mock()
+        mock_drive_client_class.return_value = mock_drive_client
+
+        mock_usecase = Mock()
+        mock_usecase.execute.return_value = CleanupResult(
+            total_found=3, total_expired=2, total_deleted=1, total_failed=1
+        )
+        mock_usecase_class.return_value = mock_usecase
+
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+        assert exc_info.value.code == 1
+
+    @patch("fishing_forecast_gcal.presentation.cli.parse_args")
+    @patch("fishing_forecast_gcal.presentation.cli.setup_logging")
+    @patch("fishing_forecast_gcal.presentation.cli.load_config")
+    @patch("fishing_forecast_gcal.presentation.cli.GoogleDriveClient")
+    @patch("fishing_forecast_gcal.presentation.cli.CleanupDriveImagesUseCase")
+    @patch("fishing_forecast_gcal.presentation.cli.Path")
+    def test_main_cleanup_images_custom_retention(
+        self,
+        mock_path: Mock,
+        mock_usecase_class: Mock,
+        mock_drive_client_class: Mock,
+        mock_load_config: Mock,
+        mock_setup_logging: Mock,
+        mock_parse_args: Mock,
+    ) -> None:
+        """カスタム retention-days が UseCase に渡される"""
+        mock_parse_args.return_value = self._create_mock_args(retention_days=7)
+
+        mock_config_path = Mock()
+        mock_config_path.exists.return_value = True
+        mock_path.return_value = mock_config_path
+
+        mock_config = self._create_mock_config()
+        mock_load_config.return_value = mock_config
+
+        mock_drive_client = Mock()
+        mock_drive_client_class.return_value = mock_drive_client
+
+        mock_usecase = Mock()
+        mock_usecase.execute.return_value = CleanupResult(
+            total_found=0, total_expired=0, total_deleted=0, total_failed=0
+        )
+        mock_usecase_class.return_value = mock_usecase
+
+        main()
+
+        mock_usecase.execute.assert_called_once_with(
+            folder_name="fishing-forecast-tide-graphs",
+            retention_days=7,
+            dry_run=False,
+        )
