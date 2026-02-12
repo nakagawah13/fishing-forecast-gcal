@@ -6,7 +6,7 @@ Google Drive 上の古いタイドグラフ画像を削除するユースケー�
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fishing_forecast_gcal.infrastructure.clients.google_drive_client import (
     GoogleDriveClient,
@@ -88,12 +88,10 @@ class CleanupDriveImagesUseCase:
         logger.info("Found %d file(s) in folder", total_found)
 
         if total_found == 0:
-            return CleanupResult(
-                total_found=0, total_expired=0, total_deleted=0, total_failed=0
-            )
+            return CleanupResult(total_found=0, total_expired=0, total_deleted=0, total_failed=0)
 
         # 3. Filter expired files
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         expired_files = []
 
         for file_info in files:
