@@ -1,6 +1,6 @@
 # Issue #92: TideGraphService のレイヤー移動（Domain → Infrastructure）
 
-## ステータス: In Progress
+## ステータス: ✅ Completed
 
 ## 変更概要
 
@@ -91,3 +91,37 @@ class ITideGraphService(Protocol):
 3. pyright 型チェックがパスすること
 4. `ITideGraphService` Protocol を `TideGraphRenderer` が満たすこと
 5. SyncTideUseCase が Protocol 型で受け取れること
+
+## 実装結果・変更点
+
+### 実施日
+2026-02-12
+
+### 変更ファイル一覧
+
+#### 新規作成
+- `src/fishing_forecast_gcal/infrastructure/services/__init__.py`
+- `src/fishing_forecast_gcal/infrastructure/services/tide_graph_renderer.py` — `TideGraphRenderer` 実装（旧 `TideGraphService` の全コードを移動）
+- `tests/unit/infrastructure/services/__init__.py`
+
+#### 修正
+- `src/fishing_forecast_gcal/domain/services/tide_graph_service.py` — 実装を削除し `ITideGraphService` Protocol のみを定義（358行 → 53行）
+- `src/fishing_forecast_gcal/domain/services/__init__.py` — `TideGraphService` → `ITideGraphService` に export 変更
+- `src/fishing_forecast_gcal/application/usecases/sync_tide_usecase.py` — import と型注釈を `ITideGraphService` Protocol に変更
+- `src/fishing_forecast_gcal/presentation/commands/sync_tide.py` — import を `TideGraphRenderer`（Infrastructure 層）に変更
+- `tests/unit/presentation/commands/test_sync_tide.py` — パッチパスを `TideGraphRenderer` に更新
+
+#### 移動（git mv）
+- `tests/unit/domain/services/test_tide_graph_service.py` → `tests/unit/infrastructure/services/test_tide_graph_renderer.py`
+
+### テスト結果
+- 432 passed, 1 skipped, 5 deselected
+- ruff format: 107 files unchanged
+- ruff check: 0 errors（import 順序を自動修正後）
+- pyright: 0 errors, 0 warnings
+- カバレッジ: 94%
+
+### アーキテクチャ改善
+- Domain 層から `matplotlib`, `seaborn`, `numpy`, `matplotlib_fontja` への依存を完全除去
+- DIP（依存性逆転原則）に準拠: `SyncTideUseCase` は `ITideGraphService` Protocol に依存
+- モジュールレベル副作用（`matplotlib.use("Agg")`, `sns.set_theme()`）を Infrastructure 層に隔離
