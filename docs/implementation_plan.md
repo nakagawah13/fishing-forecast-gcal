@@ -849,6 +849,34 @@
 **依存**: T-013.14
 **詳細ドキュメント**: [docs/completed/issue-93.md](completed/issue-93.md)
 
+#### T-013.16: OAuth スコープ不一致時の再認証ハンドリング
+**責務**: `token.json` のスコープが現在の `SCOPES` 定義と異なる場合に自動再認証を行い、`invalid_scope` エラーを防止する
+
+**ステータス**: 🔵 In Progress
+
+**背景**:
+- T-013.13 で `SCOPES` に `drive.file` を追加した結果、Calendar スコープのみで発行済みの `token.json` でリフレッシュすると `invalid_scope: Bad Request` が発生
+- GCP の OAuth 同意画面が Testing モードの場合、リフレッシュトークンが限定的なスコープで発行されており、新スコープの追加にはユーザーの再同意が必要
+
+**成果物**:
+- `infrastructure/clients/google_auth.py`
+  - `authenticate()` にスコープ不一致検出ロジックを追加
+  - `token.json` 内のスコープと `SCOPES` 定数を比較し、不一致時に既存トークンを無効化して再認証フローを起動
+  - `RefreshError` 発生時のフォールバック処理（再認証フローへの誘導）
+  - WARNING ログ出力（「スコープが変更されました。再認証が必要です。」）
+- `tests/unit/infrastructure/clients/test_google_auth.py`
+  - スコープ不一致ケースのテスト追加
+  - `RefreshError` フォールバックテスト追加
+
+**テスト要件**:
+- スコープ不一致時に再認証フローが起動されること
+- `RefreshError` 発生時にフォールバック再認証が起動されること
+- スコープ一致時は既存動作に変更がないこと
+- WARNING ログが出力されること
+
+**依存**: T-013.13
+**Issue**: [#98](https://github.com/nakagawah13/fishing-forecast-gcal/issues/98)
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割
