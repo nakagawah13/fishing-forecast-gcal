@@ -134,8 +134,7 @@ def authenticate(credentials_path: str, token_path: str) -> Credentials:
     # Check scope mismatch — force re-auth if scopes differ
     if creds and creds.valid and not _scopes_match(creds):
         logger.warning(
-            "スコープが変更されました。再認証が必要です。"
-            " (token scopes: %s, required: %s)",
+            "スコープが変更されました。再認証が必要です。 (token scopes: %s, required: %s)",
             creds.scopes,
             SCOPES,
         )

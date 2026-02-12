@@ -358,9 +358,7 @@ class TestRefreshErrorFallback:
             with caplog.at_level(logging.WARNING):
                 authenticate(str(mock_credentials_path), str(mock_token_path))
 
-            assert any(
-                "トークンリフレッシュに失敗" in record.message for record in caplog.records
-            )
+            assert any("トークンリフレッシュに失敗" in record.message for record in caplog.records)
 
     def test_refresh_error_saves_new_token(
         self, mock_credentials_path: Path, mock_token_path: Path
