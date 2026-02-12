@@ -15,6 +15,10 @@ import pytest
 
 from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.domain.models.tide import Tide, TideType
+from fishing_forecast_gcal.domain.services.moon_age_calculator import MoonAgeCalculator
+from fishing_forecast_gcal.domain.services.prime_time_finder import PrimeTimeFinder
+from fishing_forecast_gcal.domain.services.tide_calculation_service import TideCalculationService
+from fishing_forecast_gcal.domain.services.tide_type_classifier import TideTypeClassifier
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -38,8 +42,14 @@ class TestTideDataRepositoryIntegration:
 
     @pytest.fixture
     def repository(self, adapter: TideCalculationAdapter) -> TideDataRepository:
-        """実リポジトリのフィクスチャ"""
-        return TideDataRepository(adapter=adapter)
+        """実リポジトリのフィクスチャ（DI注入あり）"""
+        return TideDataRepository(
+            adapter=adapter,
+            tide_calc_service=TideCalculationService(),
+            tide_type_classifier=TideTypeClassifier(),
+            prime_time_finder=PrimeTimeFinder(),
+            moon_age_calculator=MoonAgeCalculator(),
+        )
 
     @pytest.fixture
     def yokosuka_location(self) -> Location:

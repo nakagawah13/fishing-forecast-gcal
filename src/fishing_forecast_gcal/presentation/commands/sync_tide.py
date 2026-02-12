@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fishing_forecast_gcal.application.usecases.sync_tide_usecase import SyncTideUseCase
+from fishing_forecast_gcal.domain.services.moon_age_calculator import MoonAgeCalculator
+from fishing_forecast_gcal.domain.services.prime_time_finder import PrimeTimeFinder
+from fishing_forecast_gcal.domain.services.tide_calculation_service import TideCalculationService
+from fishing_forecast_gcal.domain.services.tide_type_classifier import TideTypeClassifier
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -88,10 +92,22 @@ def run(
     calendar_client.authenticate()
     logger.info("Google Calendar authentication successful")
 
+    # ドメインサービス
+    tide_calc_service = TideCalculationService()
+    tide_type_classifier = TideTypeClassifier()
+    prime_time_finder = PrimeTimeFinder()
+    moon_age_calculator = MoonAgeCalculator()
+
     # リポジトリ
     harmonics_dir = Path("config/harmonics")
     tide_adapter = TideCalculationAdapter(harmonics_dir)
-    tide_repo = TideDataRepository(tide_adapter)
+    tide_repo = TideDataRepository(
+        adapter=tide_adapter,
+        tide_calc_service=tide_calc_service,
+        tide_type_classifier=tide_type_classifier,
+        prime_time_finder=prime_time_finder,
+        moon_age_calculator=moon_age_calculator,
+    )
     calendar_repo = CalendarRepository(
         client=calendar_client,
         calendar_id=settings.calendar_id,

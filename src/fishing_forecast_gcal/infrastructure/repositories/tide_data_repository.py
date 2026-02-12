@@ -6,11 +6,12 @@ Domainモデルに変換します。
 """
 
 import logging
-from datetime import UTC, date, datetime
+from datetime import date
 
 from fishing_forecast_gcal.domain.models.location import Location
-from fishing_forecast_gcal.domain.models.tide import Tide, TideEvent
+from fishing_forecast_gcal.domain.models.tide import Tide
 from fishing_forecast_gcal.domain.repositories.tide_data_repository import ITideDataRepository
+from fishing_forecast_gcal.domain.services.moon_age_calculator import MoonAgeCalculator
 from fishing_forecast_gcal.domain.services.prime_time_finder import PrimeTimeFinder
 from fishing_forecast_gcal.domain.services.tide_calculation_service import TideCalculationService
 from fishing_forecast_gcal.domain.services.tide_type_classifier import TideTypeClassifier
@@ -38,23 +39,33 @@ class TideDataRepository(ITideDataRepository):
                             (時合い帯計算サービス)
     """
 
-    # 月の朔望周期（日数）
-    MOON_CYCLE_DAYS = 29.53058867
-
-    # 基準新月（2000年1月6日 18:14 UTC）
-    REFERENCE_NEW_MOON = datetime(2000, 1, 6, 18, 14, tzinfo=UTC)
-
-    def __init__(self, adapter: TideCalculationAdapter) -> None:
+    def __init__(
+        self,
+        adapter: TideCalculationAdapter,
+        tide_calc_service: TideCalculationService | None = None,
+        tide_type_classifier: TideTypeClassifier | None = None,
+        prime_time_finder: PrimeTimeFinder | None = None,
+        moon_age_calculator: MoonAgeCalculator | None = None,
+    ) -> None:
         """Initialize tide data repository.
 
         Args:
             adapter: Tide calculation adapter.
                      (潮汐計算アダプター、依存性注入)
+            tide_calc_service: Tide calculation service (DI).
+                               Defaults to a new instance.
+            tide_type_classifier: Tide type classifier (DI).
+                                  Defaults to a new instance.
+            prime_time_finder: Prime time finder service (DI).
+                               Defaults to a new instance.
+            moon_age_calculator: Moon age calculator (DI).
+                                 Defaults to a new instance.
         """
         self._adapter = adapter
-        self._calculation_service = TideCalculationService()
-        self._type_classifier = TideTypeClassifier()
-        self._prime_time_finder = PrimeTimeFinder()
+        self._calculation_service = tide_calc_service or TideCalculationService()
+        self._type_classifier = tide_type_classifier or TideTypeClassifier()
+        self._prime_time_finder = prime_time_finder or PrimeTimeFinder()
+        self._moon_age_calculator = moon_age_calculator or MoonAgeCalculator()
 
     def get_tide_data(self, location: Location, target_date: date) -> Tide:
         """指定地点・日付の潮汐データを取得
@@ -96,8 +107,8 @@ class TideDataRepository(ITideDataRepository):
             prime_time_end = prime_time[1] if prime_time else None
 
             # 4. 潮回りを判定
-            moon_age = self._calculate_moon_age(target_date)
-            tide_range = self._calculate_tide_range(events)
+            moon_age = self._moon_age_calculator.calculate(target_date)
+            tide_range = self._calculation_service.calculate_tide_range(events)
             tide_type = self._type_classifier.classify(tide_range, moon_age)
             logger.debug(
                 f"Calculated tide_type={tide_type.value}, moon_age={moon_age:.2f}, "
@@ -170,54 +181,3 @@ class TideDataRepository(ITideDataRepository):
         except Exception as e:
             logger.error(f"Failed to get hourly heights for {location.name}: {e}")
             raise RuntimeError(f"Failed to get hourly heights: {e}") from e
-
-    def _calculate_moon_age(self, target_date: date) -> float:
-        """月齢を計算
-
-        簡易計算式を使用して月齢（0-29.5）を算出します。
-        2000年1月6日を基準新月とし、経過日数から計算します。
-
-        Args:
-            target_date: 対象日
-
-        Returns:
-            float: 月齢（0=新月、15=満月）
-
-        Note:
-            実用上十分な精度の簡易実装です。
-            専用ライブラリ（ephem等）は使用していません。
-        """
-        target_dt = datetime.combine(target_date, datetime.min.time(), tzinfo=UTC)
-        days_since_ref = (target_dt - self.REFERENCE_NEW_MOON).total_seconds() / 86400
-        moon_age = days_since_ref % self.MOON_CYCLE_DAYS
-        return moon_age
-
-    def _calculate_tide_range(self, events: list[TideEvent]) -> float:
-        """潮位差を計算
-
-        その日の満潮の最大値と干潮の最小値の差を計算します。
-
-        Args:
-            events: 満干潮のリスト
-
-        Returns:
-            float: 潮位差（cm）
-
-        Note:
-            満潮または干潮がない場合は 0.0 を返します。
-        """
-        high_tides = [e for e in events if e.event_type == "high"]
-        low_tides = [e for e in events if e.event_type == "low"]
-
-        if not high_tides or not low_tides:
-            logger.warning("Cannot calculate tide range: missing high or low tide")
-            return 0.0
-
-        max_high = max(e.height_cm for e in high_tides)
-        min_low = min(e.height_cm for e in low_tides)
-        tide_range = max_high - min_low
-
-        logger.debug(
-            f"Tide range: {tide_range:.1f}cm (max_high={max_high:.1f}, min_low={min_low:.1f})"
-        )
-        return tide_range
