@@ -28,7 +28,7 @@ class ITideGraphService(Protocol):
         tide_events: list[TideEvent],
         location_name: str,
         tide_type: TideType,
-        prime_time: tuple[datetime, datetime] | None = None,
+        prime_times: list[tuple[datetime, datetime]] | None = None,
         output_dir: Path | None = None,
         location_id: str = "unknown",
     ) -> Path:
@@ -40,7 +40,7 @@ class ITideGraphService(Protocol):
             tide_events: High/low tide events for annotation.
             location_name: Location display name for title.
             tide_type: Tide type for title display.
-            prime_time: Prime time range (start, end) or None.
+            prime_times: List of prime time ranges (start, end) or None.
             output_dir: Output directory. Uses temp dir if None.
             location_id: Location ID for filename.
 

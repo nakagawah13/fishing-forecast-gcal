@@ -102,9 +102,7 @@ class TideDataRepository(ITideDataRepository):
             logger.debug(f"Extracted {len(events)} tide events")
 
             # 3. 時合い帯を計算
-            prime_time = self._prime_time_finder.find(events)
-            prime_time_start = prime_time[0] if prime_time else None
-            prime_time_end = prime_time[1] if prime_time else None
+            prime_times = self._prime_time_finder.find(events)
 
             # 4. 潮回りを判定
             moon_age = self._moon_age_calculator.calculate(target_date)
@@ -120,13 +118,12 @@ class TideDataRepository(ITideDataRepository):
                 date=target_date,
                 tide_type=tide_type,
                 events=events,
-                prime_time_start=prime_time_start,
-                prime_time_end=prime_time_end,
+                prime_times=prime_times if prime_times else None,
             )
 
             logger.info(
                 f"Successfully fetched tide data: {tide_type.value}, "
-                f"{len(events)} events, prime_time={'set' if prime_time else 'none'}"
+                f"{len(events)} events, prime_times={len(prime_times)} slot(s)"
             )
             return tide
 

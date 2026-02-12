@@ -182,19 +182,14 @@ class SyncTideUseCase:
             # 1. 時系列潮位データを取得
             hourly_heights = self._tide_repo.get_hourly_heights(location, target_date)
 
-            # 2. 時合い帯の取得
-            prime_time = None
-            if tide.prime_time_start and tide.prime_time_end:
-                prime_time = (tide.prime_time_start, tide.prime_time_end)
-
-            # 3. タイドグラフ画像を生成
+            # 2. タイドグラフ画像を生成
             image_path = self._tide_graph_service.generate_graph(
                 target_date=target_date,
                 hourly_heights=hourly_heights,
                 tide_events=tide.events,
                 location_name=location.name,
                 tide_type=tide.tide_type,
-                prime_time=prime_time,
+                prime_times=tide.prime_times,
                 location_id=location.id,
             )
             logger.info(f"Tide graph generated: {image_path}")
@@ -293,12 +288,13 @@ class SyncTideUseCase:
             )
             lines.append(f"- 干潮: {low_times}")
 
-        # 時合い帯
-        if tide.prime_time_start and tide.prime_time_end:
-            prime_time = (
-                f"{tide.prime_time_start.strftime('%H:%M')}-{tide.prime_time_end.strftime('%H:%M')}"
-            )
-            lines.append(f"- 時合い: {prime_time}")
+        # 時合い帯（複数対応）
+        if tide.prime_times:
+            prime_time_strs = [
+                f"{pt_start.strftime('%H:%M')}-{pt_end.strftime('%H:%M')}"
+                for pt_start, pt_end in tide.prime_times
+            ]
+            lines.append(f"- 時合い: {', '.join(prime_time_strs)}")
 
         return "\n".join(lines)
 

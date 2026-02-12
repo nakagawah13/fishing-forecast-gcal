@@ -76,7 +76,7 @@ class TideGraphRenderer:
         tide_events: list[TideEvent],
         location_name: str,
         tide_type: TideType,
-        prime_time: tuple[datetime, datetime] | None = None,
+        prime_times: list[tuple[datetime, datetime]] | None = None,
         output_dir: Path | None = None,
         location_id: str = "unknown",
     ) -> Path:
@@ -92,7 +92,7 @@ class TideGraphRenderer:
             tide_events: High/low tide events for annotation.
             location_name: Location display name for title.
             tide_type: Tide type for title display.
-            prime_time: Prime time range (start, end) or None.
+            prime_times: List of prime time ranges (start, end) or None.
             output_dir: Output directory. Uses temp dir if None.
             location_id: Location ID for filename.
 
@@ -128,7 +128,7 @@ class TideGraphRenderer:
         fig, ax = self._create_figure()
         self._plot_tide_curve(ax, hours, heights)
         self._plot_tide_events(ax, tide_events, target_date)
-        self._plot_prime_time_band(ax, prime_time, target_date)
+        self._plot_prime_time_bands(ax, prime_times, target_date)
         self._configure_axes(ax, heights, target_date, location_name, tide_type)
 
         # 保存
@@ -246,39 +246,40 @@ class TideGraphRenderer:
                 zorder=6,
             )
 
-    def _plot_prime_time_band(
+    def _plot_prime_time_bands(
         self,
         ax: plt.Axes,
-        prime_time: tuple[datetime, datetime] | None,
+        prime_times: list[tuple[datetime, datetime]] | None,
         target_date: date,
     ) -> None:
-        """Plot prime time highlight band.
+        """Plot prime time highlight bands.
 
         Args:
             ax: Matplotlib axes.
-            prime_time: Prime time range (start, end) or None.
+            prime_times: List of prime time ranges (start, end) or None.
             target_date: Target date for time calculation.
         """
-        if prime_time is None:
+        if not prime_times:
             return
 
-        start, end = prime_time
+        label_added = False
+        for start, end in prime_times:
+            # 時刻を時間単位に変換（対象日内にクリップ）
+            start_hour = max(0.0, self._datetime_to_hours(start, target_date))
+            end_hour = min(24.0, self._datetime_to_hours(end, target_date))
 
-        # 時刻を時間単位に変換（対象日内にクリップ）
-        start_hour = max(0.0, self._datetime_to_hours(start, target_date))
-        end_hour = min(24.0, self._datetime_to_hours(end, target_date))
+            if start_hour >= end_hour:
+                continue
 
-        if start_hour >= end_hour:
-            return
-
-        ax.axvspan(
-            start_hour,
-            end_hour,
-            alpha=_DarkPalette.PRIME_TIME_ALPHA,
-            color=_DarkPalette.PRIME_TIME_BAND,
-            zorder=1,
-            label="時合い帯",
-        )
+            ax.axvspan(
+                start_hour,
+                end_hour,
+                alpha=_DarkPalette.PRIME_TIME_ALPHA,
+                color=_DarkPalette.PRIME_TIME_BAND,
+                zorder=1,
+                label="時合い帯" if not label_added else None,
+            )
+            label_added = True
 
     def _configure_axes(
         self,
