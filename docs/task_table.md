@@ -69,6 +69,12 @@
 | T-013.11c | 1.9 | SyncTideUseCase への画像添付統合 ([doc](completed/issue-80.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#80](https://github.com/nakagawah13/fishing-forecast-gcal/issues/80) | ✅ Completed |
 | T-013.11d | 1.9 | 古い Drive 画像の定期削除コマンド ([doc](completed/issue-81.md)) | [implementation_plan.md](implementation_plan.md#t-01311-タイドグラフ画像の表示方式poc) | [#81](https://github.com/nakagawah13/fishing-forecast-gcal/issues/81) | ✅ Completed |
 
+## フェーズ 1.10（MVP安定化・第5弾）
+
+| Task ID | Phase | Title | Plan Link | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| T-013.12 | 1.10 | CLI モジュール分割 ([doc](completed/issue-90.md)) | [implementation_plan.md](implementation_plan.md#t-01312-cli-モジュール分割clipy-の責務分離-) | [#90](https://github.com/nakagawah13/fishing-forecast-gcal/issues/90) | ✅ Completed |
+
 ## フェーズ 2（予報更新）
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
