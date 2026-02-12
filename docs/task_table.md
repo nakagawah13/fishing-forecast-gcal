@@ -75,6 +75,7 @@
 | --- | --- | --- | --- | --- | --- |
 | T-013.12 | 1.10 | CLI モジュール分割 ([doc](completed/issue-90.md)) | [implementation_plan.md](implementation_plan.md#t-01312-cli-モジュール分割clipy-の責務分離-) | [#90](https://github.com/nakagawah13/fishing-forecast-gcal/issues/90) | ✅ Completed |
 | T-013.13 | 1.10 | Google API 認証ロジック共通化 ([doc](completed/issue-91.md)) | [implementation_plan.md](implementation_plan.md#t-01313-google-api-認証ロジック共通化-) | [#91](https://github.com/nakagawah13/fishing-forecast-gcal/issues/91) | ✅ Completed |
+| T-013.14 | 1.10 | TideGraphService のレイヤー移動 ([doc](completed/issue-92.md)) | [implementation_plan.md](implementation_plan.md#t-01314-tidegraphservice-のレイヤー移動domain--infrastructure-) | [#92](https://github.com/nakagawah13/fishing-forecast-gcal/issues/92) | ✅ Completed |
 
 ## フェーズ 2（予報更新）
 

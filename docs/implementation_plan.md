@@ -775,6 +775,7 @@
 **方針**:
 - CLI モジュールの責務分離によるコードの保守性向上
 - Phase 2 の `sync-weather` コマンド追加に備えた拡張性の確保
+- DIP（依存性逆転原則）違反の解消によるレイヤードアーキテクチャの整合性強化
 
 ### タスク分割
 
@@ -808,6 +809,26 @@
 
 **依存**: T-013.12
 **詳細ドキュメント**: [docs/completed/issue-91.md](completed/issue-91.md)
+
+#### T-013.14: TideGraphService のレイヤー移動（Domain → Infrastructure） ✅
+**責務**: `TideGraphService` を Domain 層から Infrastructure 層に移動し、DIP 違反を解消する
+
+**ステータス**: ✅ 完了（2026-02-12）
+
+**変更内容**:
+- `domain/services/tide_graph_service.py` を `ITideGraphService` Protocol のみに縮退（358行 → 53行）
+- `infrastructure/services/tide_graph_renderer.py` に `TideGraphRenderer` 実装を配置
+- `SyncTideUseCase` の型注釈を `ITideGraphService` Protocol に変更
+- CLI `sync_tide.py` の import を `TideGraphRenderer`（Infrastructure 層）に変更
+- テストを `tests/unit/infrastructure/services/` に移動
+- Domain 層から `matplotlib`, `seaborn`, `numpy`, `matplotlib_fontja` 依存を完全除去
+
+**テスト結果**:
+- 432 passed, 1 skipped
+- ruff / pyright: 0 errors
+
+**依存**: T-013.11b
+**詳細ドキュメント**: [docs/completed/issue-92.md](completed/issue-92.md)
 
 ## フェーズ 2: 直前更新（予報）
 

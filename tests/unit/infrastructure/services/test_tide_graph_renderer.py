@@ -1,4 +1,4 @@
-"""Tests for TideGraphService.
+"""Tests for TideGraphRenderer.
 
 タイドグラフ画像生成サービスのユニットテスト。
 画像生成、配色、アノテーション、エラーハンドリングを検証します。
@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from fishing_forecast_gcal.domain.models.tide import TideEvent, TideType
-from fishing_forecast_gcal.domain.services.tide_graph_service import TideGraphService
+from fishing_forecast_gcal.infrastructure.services.tide_graph_renderer import TideGraphRenderer
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -22,9 +22,9 @@ JST = ZoneInfo("Asia/Tokyo")
 
 
 @pytest.fixture
-def service() -> TideGraphService:
-    """Create a TideGraphService instance."""
-    return TideGraphService()
+def service() -> TideGraphRenderer:
+    """Create a TideGraphRenderer instance."""
+    return TideGraphRenderer()
 
 
 @pytest.fixture
@@ -173,7 +173,7 @@ class TestGenerateGraph:
 
     def test_generates_png_file(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -196,7 +196,7 @@ class TestGenerateGraph:
 
     def test_file_is_valid_png(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -219,7 +219,7 @@ class TestGenerateGraph:
 
     def test_file_size_under_100kb(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -241,7 +241,7 @@ class TestGenerateGraph:
 
     def test_uses_temp_dir_when_output_dir_is_none(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -264,7 +264,7 @@ class TestGenerateGraph:
 
     def test_creates_output_dir_if_not_exists(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -294,7 +294,7 @@ class TestImageContent:
 
     def test_dark_mode_background(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -328,7 +328,7 @@ class TestImageContent:
 
     def test_graph_contains_metadata(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -359,7 +359,7 @@ class TestPrimeTimeBand:
 
     def test_with_prime_time(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -382,7 +382,7 @@ class TestPrimeTimeBand:
 
     def test_without_prime_time(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -416,7 +416,7 @@ class TestTideTypes:
     )
     def test_all_tide_types(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -445,7 +445,7 @@ class TestErrorHandling:
 
     def test_empty_hourly_heights_raises_error(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_tide_events: list[TideEvent],
         tmp_path: Path,
@@ -464,7 +464,7 @@ class TestErrorHandling:
 
     def test_empty_tide_events(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         tmp_path: Path,
@@ -484,7 +484,7 @@ class TestErrorHandling:
 
     def test_tide_events_from_different_date(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         tmp_path: Path,
@@ -520,7 +520,7 @@ class TestFilename:
 
     def test_filename_format(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -541,7 +541,7 @@ class TestFilename:
 
     def test_default_location_id(
         self,
-        service: TideGraphService,
+        service: TideGraphRenderer,
         target_date: date,
         sample_hourly_heights: list[tuple[float, float]],
         sample_tide_events: list[TideEvent],
@@ -569,29 +569,29 @@ class TestDatetimeToHours:
     def test_midnight_returns_zero(self) -> None:
         """Midnight returns 0.0."""
         dt = datetime(2026, 2, 15, 0, 0, tzinfo=JST)
-        result = TideGraphService._datetime_to_hours(dt, date(2026, 2, 15))
+        result = TideGraphRenderer._datetime_to_hours(dt, date(2026, 2, 15))
         assert result == 0.0
 
     def test_noon_returns_twelve(self) -> None:
         """Noon returns 12.0."""
         dt = datetime(2026, 2, 15, 12, 0, tzinfo=JST)
-        result = TideGraphService._datetime_to_hours(dt, date(2026, 2, 15))
+        result = TideGraphRenderer._datetime_to_hours(dt, date(2026, 2, 15))
         assert result == 12.0
 
     def test_with_minutes(self) -> None:
         """Time with minutes returns correct fractional hours."""
         dt = datetime(2026, 2, 15, 6, 30, tzinfo=JST)
-        result = TideGraphService._datetime_to_hours(dt, date(2026, 2, 15))
+        result = TideGraphRenderer._datetime_to_hours(dt, date(2026, 2, 15))
         assert result == 6.5
 
     def test_before_midnight_returns_negative(self) -> None:
         """Time before target date returns negative hours."""
         dt = datetime(2026, 2, 14, 23, 0, tzinfo=JST)
-        result = TideGraphService._datetime_to_hours(dt, date(2026, 2, 15))
+        result = TideGraphRenderer._datetime_to_hours(dt, date(2026, 2, 15))
         assert result == -1.0
 
     def test_after_midnight_returns_over_24(self) -> None:
         """Time after target date returns hours > 24."""
         dt = datetime(2026, 2, 16, 1, 0, tzinfo=JST)
-        result = TideGraphService._datetime_to_hours(dt, date(2026, 2, 15))
+        result = TideGraphRenderer._datetime_to_hours(dt, date(2026, 2, 15))
         assert result == 25.0

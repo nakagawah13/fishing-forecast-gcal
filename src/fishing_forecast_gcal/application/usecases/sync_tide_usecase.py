@@ -19,7 +19,7 @@ from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.domain.models.tide import Tide, TideType
 from fishing_forecast_gcal.domain.repositories.calendar_repository import ICalendarRepository
 from fishing_forecast_gcal.domain.repositories.tide_data_repository import ITideDataRepository
-from fishing_forecast_gcal.domain.services.tide_graph_service import TideGraphService
+from fishing_forecast_gcal.domain.services.tide_graph_service import ITideGraphService
 from fishing_forecast_gcal.domain.services.tide_period_analyzer import TidePeriodAnalyzer
 from fishing_forecast_gcal.infrastructure.clients.google_drive_client import GoogleDriveClient
 
@@ -46,7 +46,7 @@ class SyncTideUseCase:
         self,
         tide_repo: ITideDataRepository,
         calendar_repo: ICalendarRepository,
-        tide_graph_service: TideGraphService | None = None,
+        tide_graph_service: ITideGraphService | None = None,
         drive_client: GoogleDriveClient | None = None,
         drive_folder_name: str = "fishing-forecast-tide-graphs",
     ) -> None:
