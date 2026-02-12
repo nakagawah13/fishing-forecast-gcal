@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fishing_forecast_gcal.application.usecases.sync_tide_usecase import SyncTideUseCase
-from fishing_forecast_gcal.infrastructure.services.tide_graph_renderer import TideGraphRenderer
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -27,6 +26,7 @@ from fishing_forecast_gcal.infrastructure.repositories.calendar_repository impor
 from fishing_forecast_gcal.infrastructure.repositories.tide_data_repository import (
     TideDataRepository,
 )
+from fishing_forecast_gcal.infrastructure.services.tide_graph_renderer import TideGraphRenderer
 from fishing_forecast_gcal.presentation.commands.common import (
     add_common_arguments,
     add_period_arguments,
