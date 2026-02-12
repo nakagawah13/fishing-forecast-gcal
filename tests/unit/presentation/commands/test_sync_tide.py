@@ -211,7 +211,7 @@ class TestSyncTideRun:
         assert exc_info.value.code == 1
 
     @patch("fishing_forecast_gcal.presentation.commands.sync_tide.GoogleDriveClient")
-    @patch("fishing_forecast_gcal.presentation.commands.sync_tide.TideGraphService")
+    @patch("fishing_forecast_gcal.presentation.commands.sync_tide.TideGraphRenderer")
     @patch("fishing_forecast_gcal.presentation.commands.sync_tide.GoogleCalendarClient")
     @patch("fishing_forecast_gcal.presentation.commands.sync_tide.TideCalculationAdapter")
     @patch("fishing_forecast_gcal.presentation.commands.sync_tide.TideDataRepository")

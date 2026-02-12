@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fishing_forecast_gcal.application.usecases.sync_tide_usecase import SyncTideUseCase
-from fishing_forecast_gcal.domain.services.tide_graph_service import TideGraphService
+from fishing_forecast_gcal.infrastructure.services.tide_graph_renderer import TideGraphRenderer
 from fishing_forecast_gcal.infrastructure.adapters.tide_calculation_adapter import (
     TideCalculationAdapter,
 )
@@ -98,13 +98,13 @@ def run(
     )
 
     # タイドグラフ関連の依存（有効な場合のみ構築）
-    tide_graph_service: TideGraphService | None = None
+    tide_graph_service: TideGraphRenderer | None = None
     drive_client: GoogleDriveClient | None = None
     drive_folder_name: str = "fishing-forecast-tide-graphs"
 
     if config.tide_graph.enabled:
         logger.info("Tide graph attachment is enabled")
-        tide_graph_service = TideGraphService()
+        tide_graph_service = TideGraphRenderer()
 
         drive_client = GoogleDriveClient(
             credentials_path=settings.google_credentials_path,
