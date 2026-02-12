@@ -197,8 +197,8 @@ class SyncTideUseCase:
             # 4. Drive フォルダを取得/作成
             folder_id = self._drive_client.get_or_create_folder(self._drive_folder_name)
 
-            # 5. Drive にアップロード
-            upload_result = self._drive_client.upload_file(
+            # 5. Drive にアップロード（同名ファイルがあれば上書き更新）
+            upload_result = self._drive_client.upload_or_update_file(
                 file_path=image_path,
                 mime_type="image/png",
                 folder_id=folder_id,

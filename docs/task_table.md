@@ -83,8 +83,7 @@
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
 | --- | --- | --- | --- | --- | --- |
-| T-013.17 | 1.11 | 時合い帯の複数満潮対応 | [implementation_plan.md](implementation_plan.md#t-01317-時合い帯の複数満潮対応1日2回の時合い計算) | [#101](https://github.com/nakagawah13/fishing-forecast-gcal/issues/101) | Not Started |
-
+| T-013.17 | 1.11 | 時合い帯の複数満潮対応 | [implementation_plan.md](implementation_plan.md#t-01317-時合い帯の複数満潮対応1日2回の時合い計算) | [#101](https://github.com/nakagawah13/fishing-forecast-gcal/issues/101) | Not Started || T-013.18 | 1.11 | Drive 画像の冪等アップロード ([doc](completed/issue-104.md)) | [implementation_plan.md](implementation_plan.md#t-01318-drive-画像の冪等アップロード重複防止) | [#104](https://github.com/nakagawah13/fishing-forecast-gcal/issues/104) | ✅ Completed |
 ## フェーズ 2（予報更新）
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
