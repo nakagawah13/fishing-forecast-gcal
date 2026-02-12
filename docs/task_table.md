@@ -79,6 +79,12 @@
 | T-013.15 | 1.10 | TideDataRepository の DI 改善 ([doc](completed/issue-93.md)) | [implementation_plan.md](implementation_plan.md#t-01315-tidedatarepository-のドメインロジック分離と-di-改善-) | [#93](https://github.com/nakagawah13/fishing-forecast-gcal/issues/93) | ✅ Completed |
 | T-013.16 | 1.10 | OAuth スコープ不一致時の再認証ハンドリング ([doc](completed/issue-98.md)) | [implementation_plan.md](implementation_plan.md#t-01316-oauth-スコープ不一致時の再認証ハンドリング) | [#98](https://github.com/nakagawah13/fishing-forecast-gcal/issues/98) | ✅ Completed |
 
+## フェーズ 1.11（バグ修正）
+
+| Task ID | Phase | Title | Plan Link | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| T-013.17 | 1.11 | 時合い帯の複数満潮対応 | [implementation_plan.md](implementation_plan.md#t-01317-時合い帯の複数満潮対応1日2回の時合い計算) | [#101](https://github.com/nakagawah13/fishing-forecast-gcal/issues/101) | Not Started |
+
 ## フェーズ 2（予報更新）
 
 | Task ID | Phase | Title | Plan Link | Issue | Status |
