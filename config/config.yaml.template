@@ -23,3 +23,7 @@ fishing_conditions:  # 追加: 釣行判断の閾値設定
   prime_time_offset_hours: 2  # 満潮前後の時合い帯
   max_wind_speed_ms: 10  # 釣行中止の風速閾値
   preferred_tide_types: ["大潮", "中潮"]  # 優先する潮回り
+
+tide_graph:  # タイドグラフ画像設定
+  enabled: false  # タイドグラフ画像の生成・添付を有効にするか
+  drive_folder_name: "fishing-forecast-tide-graphs"  # Google Drive のフォルダ名

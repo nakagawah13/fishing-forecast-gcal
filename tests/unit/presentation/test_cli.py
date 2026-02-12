@@ -200,6 +200,7 @@ class TestMain:
         mock_config = Mock()
         mock_config.settings = mock_settings
         mock_config.locations = [mock_location]
+        mock_config.tide_graph.enabled = False
         mock_load_config.return_value = mock_config
 
         # クライアント・リポジトリのMock
@@ -347,6 +348,7 @@ class TestMain:
         mock_config = Mock()
         mock_config.settings = mock_settings
         mock_config.locations = [mock_location]
+        mock_config.tide_graph.enabled = False
         mock_load_config.return_value = mock_config
 
         # クライアント・リポジトリのMock
@@ -430,6 +432,7 @@ class TestMain:
         mock_config = Mock()
         mock_config.settings = mock_settings
         mock_config.locations = [mock_location]
+        mock_config.tide_graph.enabled = False
         mock_load_config.return_value = mock_config
 
         # クライアント・リポジトリのMock

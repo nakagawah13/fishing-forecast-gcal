@@ -43,3 +43,25 @@ class ITideDataRepository(ABC):
             - タイムゾーンは `location` の地域に応じて設定されます
         """
         ...
+
+    @abstractmethod
+    def get_hourly_heights(
+        self, location: Location, target_date: date
+    ) -> list[tuple[float, float]]:
+        """指定地点・日付の時系列潮位データを取得（グラフ描画用）
+
+        タイドグラフ画像の生成に使用する時系列データを返します。
+        時刻は 0.0〜24.0 の float 値（時間単位）、潮位は cm 単位です。
+
+        Args:
+            location: 対象地点の情報
+            target_date: 対象日
+
+        Returns:
+            list[tuple[float, float]]: (時刻(h), 潮位(cm)) のタプルリスト
+
+        Raises:
+            ValueError: 地点または日付が不正な場合
+            RuntimeError: データ取得に失敗した場合
+        """
+        ...

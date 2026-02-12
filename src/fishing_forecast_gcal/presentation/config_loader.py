@@ -50,6 +50,19 @@ class FishingConditionSettings:
 
 
 @dataclass(frozen=True)
+class TideGraphSettings:
+    """Tide graph image settings.
+
+    Attributes:
+        enabled: Whether tide graph image generation is enabled
+        drive_folder_name: Google Drive folder name for tide graph images
+    """
+
+    enabled: bool
+    drive_folder_name: str
+
+
+@dataclass(frozen=True)
 class AppConfig:
     """Application configuration.
 
@@ -57,11 +70,13 @@ class AppConfig:
         settings: Application settings
         locations: List of fishing locations
         fishing_conditions: Fishing condition settings
+        tide_graph: Tide graph image settings
     """
 
     settings: AppSettings
     locations: list[Location]
     fishing_conditions: FishingConditionSettings
+    tide_graph: TideGraphSettings
 
 
 def load_config(config_path: str = "config/config.yaml") -> AppConfig:
@@ -107,10 +122,14 @@ def load_config(config_path: str = "config/config.yaml") -> AppConfig:
     # Parse and validate fishing_conditions (optional)
     fishing_conditions = _parse_fishing_conditions(config.get("fishing_conditions", {}))
 
+    # Parse and validate tide_graph (optional)
+    tide_graph = _parse_tide_graph(config.get("tide_graph", {}))
+
     return AppConfig(
         settings=settings,
         locations=locations,
         fishing_conditions=fishing_conditions,
+        tide_graph=tide_graph,
     )
 
 
@@ -265,4 +284,32 @@ def _parse_fishing_conditions(fishing_conditions_dict: dict[str, Any]) -> Fishin
         prime_time_offset_hours=prime_time_offset_hours,
         max_wind_speed_ms=max_wind_speed_ms,
         preferred_tide_types=preferred_tide_types,
+    )
+
+
+def _parse_tide_graph(tide_graph_dict: dict[str, Any]) -> TideGraphSettings:
+    """Parse and validate tide_graph section.
+
+    Args:
+        tide_graph_dict: Tide graph dictionary (optional)
+
+    Returns:
+        TideGraphSettings instance with defaults if not provided
+    """
+    defaults: dict[str, Any] = {
+        "enabled": False,
+        "drive_folder_name": "fishing-forecast-tide-graphs",
+    }
+
+    merged: dict[str, Any] = {**defaults, **tide_graph_dict}
+
+    enabled = bool(merged["enabled"])
+    drive_folder_name = str(merged["drive_folder_name"])
+
+    if not drive_folder_name.strip():
+        raise ValueError("tide_graph.drive_folder_name must not be empty")
+
+    return TideGraphSettings(
+        enabled=enabled,
+        drive_folder_name=drive_folder_name,
     )

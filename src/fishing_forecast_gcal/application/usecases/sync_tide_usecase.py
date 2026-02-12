@@ -2,17 +2,26 @@
 
 このモジュールは天文潮の同期処理をオーケストレーションします。
 潮汐データ取得からカレンダーイベント作成までの一連の流れを統括します。
+
+画像添付が有効な場合:
+1. タイドグラフ画像を生成
+2. Google Drive にアップロード
+3. Calendar イベントに添付
+画像添付が失敗しても、イベント同期は継続します（graceful degradation）。
 """
 
 import logging
 from datetime import date, timedelta
+from pathlib import Path
 
 from fishing_forecast_gcal.domain.models.calendar_event import CalendarEvent
 from fishing_forecast_gcal.domain.models.location import Location
 from fishing_forecast_gcal.domain.models.tide import Tide, TideType
 from fishing_forecast_gcal.domain.repositories.calendar_repository import ICalendarRepository
 from fishing_forecast_gcal.domain.repositories.tide_data_repository import ITideDataRepository
+from fishing_forecast_gcal.domain.services.tide_graph_service import TideGraphService
 from fishing_forecast_gcal.domain.services.tide_period_analyzer import TidePeriodAnalyzer
+from fishing_forecast_gcal.infrastructure.clients.google_drive_client import GoogleDriveClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,24 +32,43 @@ class SyncTideUseCase:
     指定された地点・日付の潮汐情報を取得し、
     Google カレンダーにイベントを作成/更新します。
 
+    画像添付が有効な場合は、タイドグラフ画像を生成・アップロード・添付します。
+
     Attributes:
         _tide_repo: 潮汐データリポジトリ
         _calendar_repo: カレンダーリポジトリ
+        _tide_graph_service: タイドグラフ画像生成サービス（オプション）
+        _drive_client: Google Drive クライアント（オプション）
+        _drive_folder_name: Drive フォルダ名
     """
 
     def __init__(
         self,
         tide_repo: ITideDataRepository,
         calendar_repo: ICalendarRepository,
+        tide_graph_service: TideGraphService | None = None,
+        drive_client: GoogleDriveClient | None = None,
+        drive_folder_name: str = "fishing-forecast-tide-graphs",
     ) -> None:
         """初期化
 
         Args:
             tide_repo: 潮汐データリポジトリ（依存性注入）
             calendar_repo: カレンダーリポジトリ（依存性注入）
+            tide_graph_service: タイドグラフ画像生成サービス（オプション）
+            drive_client: Google Drive クライアント（オプション）
+            drive_folder_name: Drive フォルダ名
         """
         self._tide_repo = tide_repo
         self._calendar_repo = calendar_repo
+        self._tide_graph_service = tide_graph_service
+        self._drive_client = drive_client
+        self._drive_folder_name = drive_folder_name
+
+    @property
+    def _tide_graph_enabled(self) -> bool:
+        """画像添付が有効かどうか"""
+        return self._tide_graph_service is not None and self._drive_client is not None
 
     def execute(
         self,
@@ -112,13 +140,104 @@ class SyncTideUseCase:
                 location_id=location.id,
             )
 
-            # 10. カレンダーに登録（既存イベント情報を渡して重複API呼び出しを回避）
-            self._calendar_repo.upsert_event(event, existing=existing_event)
+            # 10. タイドグラフ画像の生成・アップロード（有効な場合）
+            attachments = self._generate_and_upload_graph(location, target_date, tide)
+
+            # 11. カレンダーに登録（既存イベント情報を渡して重複API呼び出しを回避）
+            self._calendar_repo.upsert_event(
+                event, existing=existing_event, attachments=attachments
+            )
             logger.info(f"Event upserted successfully: {event_id}")
 
         except Exception as e:
             logger.error(f"Failed to sync tide: {e}")
             raise RuntimeError(f"Failed to sync tide for {location.name} on {target_date}") from e
+
+    def _generate_and_upload_graph(
+        self,
+        location: Location,
+        target_date: date,
+        tide: Tide,
+    ) -> list[dict[str, str]] | None:
+        """タイドグラフ画像を生成・Drive にアップロードし、attachments を返す
+
+        画像添付が無効または失敗した場合は None を返します（graceful degradation）。
+
+        Args:
+            location: 対象地点
+            target_date: 対象日
+            tide: 潮汐データ
+
+        Returns:
+            list[dict[str, str]] | None: Calendar attachments（失敗時は None）
+        """
+        if not self._tide_graph_enabled:
+            return None
+
+        assert self._tide_graph_service is not None
+        assert self._drive_client is not None
+
+        image_path: Path | None = None
+        try:
+            # 1. 時系列潮位データを取得
+            hourly_heights = self._tide_repo.get_hourly_heights(location, target_date)
+
+            # 2. 時合い帯の取得
+            prime_time = None
+            if tide.prime_time_start and tide.prime_time_end:
+                prime_time = (tide.prime_time_start, tide.prime_time_end)
+
+            # 3. タイドグラフ画像を生成
+            image_path = self._tide_graph_service.generate_graph(
+                target_date=target_date,
+                hourly_heights=hourly_heights,
+                tide_events=tide.events,
+                location_name=location.name,
+                tide_type=tide.tide_type,
+                prime_time=prime_time,
+                location_id=location.id,
+            )
+            logger.info(f"Tide graph generated: {image_path}")
+
+            # 4. Drive フォルダを取得/作成
+            folder_id = self._drive_client.get_or_create_folder(self._drive_folder_name)
+
+            # 5. Drive にアップロード
+            upload_result = self._drive_client.upload_file(
+                file_path=image_path,
+                mime_type="image/png",
+                folder_id=folder_id,
+            )
+            logger.info(f"Tide graph uploaded to Drive: {upload_result['file_url']}")
+
+            # 6. attachments を構築
+            return [
+                {
+                    "fileUrl": upload_result["file_url"],
+                    "title": image_path.name,
+                    "mimeType": "image/png",
+                }
+            ]
+
+        except Exception as e:
+            logger.warning(
+                f"Tide graph attachment failed for {location.name} on {target_date}: {e}. "
+                "Continuing without image attachment."
+            )
+            return None
+
+        finally:
+            # 7. 一時ファイルを削除
+            if image_path and image_path.exists():
+                try:
+                    image_path.unlink()
+                    # 一時ディレクトリも削除（空の場合のみ）
+                    parent = image_path.parent
+                    if parent.exists() and not any(parent.iterdir()):
+                        parent.rmdir()
+                    logger.debug(f"Cleaned up temp file: {image_path}")
+                except OSError as cleanup_err:
+                    logger.warning(f"Failed to clean up temp file {image_path}: {cleanup_err}")
 
     @staticmethod
     def _get_date_range(target_date: date, days_before: int, days_after: int) -> list[date]:
