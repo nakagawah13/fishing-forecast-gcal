@@ -770,6 +770,30 @@
 **依存**: T-009, T-010
 **詳細ドキュメント**: [docs/completed/issue-76.md](completed/issue-76.md)
 
+## フェーズ 1.10: MVP安定化（ポストMVP・第5弾）
+
+**方針**:
+- CLI モジュールの責務分離によるコードの保守性向上
+- Phase 2 の `sync-weather` コマンド追加に備えた拡張性の確保
+
+### タスク分割
+
+#### T-013.12: CLI モジュール分割（cli.py の責務分離） ✅
+**責務**: `cli.py`（600行）をコマンドごとにファイル分割し、薄いディスパッチャーに変更する
+
+**ステータス**: ✅ 完了
+
+**変更内容**:
+- `cli.py` を薄いディスパッチャー（約200行）に変更
+- `commands/common.py`: 共通ユーティリティ（`setup_logging`, `parse_date`, 引数ヘルパー）
+- `commands/sync_tide.py`: sync-tide コマンドの引数定義と実行ロジック
+- `commands/reset_tide.py`: reset-tide コマンドの引数定義と実行ロジック
+- `commands/cleanup_images.py`: cleanup-images コマンドの引数定義と実行ロジック
+- テストも同様に分割（`test_cli.py` → ディスパッチャーテスト + コマンド別テスト4ファイル）
+
+**依存**: T-012
+**詳細ドキュメント**: [docs/completed/issue-90.md](completed/issue-90.md)
+
 ## フェーズ 2: 直前更新（予報）
 
 ### タスク分割
