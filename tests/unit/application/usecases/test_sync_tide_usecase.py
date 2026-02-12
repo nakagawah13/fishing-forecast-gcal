@@ -644,7 +644,7 @@ class TestSyncTideUseCaseTideGraph:
         """MockのGoogleDriveクライアント"""
         client = Mock()
         client.get_or_create_folder.return_value = "folder-id-123"
-        client.upload_file.return_value = {
+        client.upload_or_update_file.return_value = {
             "file_id": "file-id-456",
             "file_url": "https://drive.google.com/file/d/file-id-456/view?usp=drivesdk",
         }
@@ -682,9 +682,9 @@ class TestSyncTideUseCaseTideGraph:
         # hourly_heights が取得された
         mock_tide_repo.get_hourly_heights.assert_called_once_with(location, target_date)
 
-        # Drive にアップロードされた
+        # Drive にアップロードされた（冪等アップロード）
         mock_drive_client.get_or_create_folder.assert_called_once_with("test-folder")
-        mock_drive_client.upload_file.assert_called_once()
+        mock_drive_client.upload_or_update_file.assert_called_once()
 
         # upsert_event に attachments が渡された
         call_kwargs = mock_calendar_repo.upsert_event.call_args[1]
@@ -753,7 +753,7 @@ class TestSyncTideUseCaseTideGraph:
         """Driveアップロードが失敗しても、attachments なしでイベント登録は継続される"""
         mock_drive = Mock()
         mock_drive.get_or_create_folder.return_value = "folder-id"
-        mock_drive.upload_file.side_effect = RuntimeError("Network error")
+        mock_drive.upload_or_update_file.side_effect = RuntimeError("Network error")
 
         usecase = SyncTideUseCase(
             tide_repo=mock_tide_repo,

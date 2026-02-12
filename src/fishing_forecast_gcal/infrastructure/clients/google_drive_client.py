@@ -123,6 +123,82 @@ class GoogleDriveClient:
 
         return {"file_id": file_id, "file_url": file_url}
 
+    def upload_or_update_file(
+        self,
+        file_path: pathlib.Path,
+        mime_type: str = "image/png",
+        folder_id: str | None = None,
+    ) -> dict[str, str]:
+        """Upload a file or update it if a same-named file already exists (idempotent).
+
+        Searches for an existing file with the same name in the target folder.
+        If found, updates the file content via ``files().update()``.
+        If not found, creates a new file via ``files().create()``.
+
+        (同名ファイルが存在すれば上書き更新、なければ新規作成する冪等アップロード)
+
+        Args:
+            file_path: Local file path to upload.
+                       (アップロードするローカルファイルパス)
+            mime_type: MIME type of the file (default: image/png).
+                       (ファイルの MIME タイプ)
+            folder_id: Drive folder ID to upload into (optional).
+                       (アップロード先の Drive フォルダ ID)
+
+        Returns:
+            Dictionary with keys:
+                - ``file_id``: Google Drive file ID
+                - ``file_url``: Public URL for Calendar attachments
+
+        Raises:
+            RuntimeError: If Drive service is not initialized.
+            FileNotFoundError: If local file does not exist.
+        """
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        service = self.get_service()
+
+        # Search for existing file with the same name in the folder
+        existing_file_id: str | None = None
+        if folder_id:
+            query = f"name = '{file_path.name}' and '{folder_id}' in parents and trashed = false"
+            result = service.files().list(q=query, fields="files(id)", pageSize=1).execute()
+            files = result.get("files", [])
+            if files:
+                existing_file_id = files[0]["id"]
+
+        media = MediaFileUpload(str(file_path), mimetype=mime_type)
+
+        if existing_file_id:
+            # Update existing file content
+            service.files().update(
+                fileId=existing_file_id,
+                media_body=media,
+            ).execute()
+            file_id = existing_file_id
+            logger.info("Updated existing Drive file %s (%s)", file_path.name, file_id)
+        else:
+            # Create new file
+            file_metadata: dict[str, Any] = {"name": file_path.name}
+            if folder_id:
+                file_metadata["parents"] = [folder_id]
+
+            created_file = (
+                service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+            )
+            file_id = created_file["id"]
+
+            # Set public read permission (only for newly created files)
+            service.permissions().create(
+                fileId=file_id,
+                body={"role": "reader", "type": "anyone"},
+            ).execute()
+            logger.info("Uploaded new file %s → %s", file_path.name, file_id)
+
+        file_url = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
+        return {"file_id": file_id, "file_url": file_url}
+
     def delete_file(self, file_id: str) -> bool:
         """Delete a file from Google Drive (idempotent).
 

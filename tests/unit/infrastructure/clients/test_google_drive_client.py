@@ -323,3 +323,93 @@ class TestScopes(TestGoogleDriveClient):
     def test_scopes_count(self) -> None:
         """スコープは2つのみ（最小権限）"""
         assert len(SCOPES) == 2
+
+
+class TestUploadOrUpdateFile(TestGoogleDriveClient):
+    """upload_or_update_file のテスト (idempotent upload)."""
+
+    def test_creates_new_file_when_no_existing(
+        self, authenticated_client: GoogleDriveClient, tmp_path: Path
+    ) -> None:
+        """フォルダ内に同名ファイルが存在しない場合は新規作成"""
+        test_file = tmp_path / "tide_graph_tk_20260215.png"
+        test_file.write_bytes(b"\x89PNG\r\n")
+
+        service = authenticated_client.get_service()
+        # list returns no existing files
+        service.files().list().execute.return_value = {"files": []}
+        # create returns new file id
+        service.files().create().execute.return_value = {"id": "new_file_id"}
+        service.permissions().create().execute.return_value = {}
+
+        result = authenticated_client.upload_or_update_file(test_file, folder_id="folder123")
+
+        assert result["file_id"] == "new_file_id"
+        assert "new_file_id" in result["file_url"]
+        service.files().create.assert_called()
+        service.permissions().create.assert_called_with(
+            fileId="new_file_id",
+            body={"role": "reader", "type": "anyone"},
+        )
+
+    def test_updates_existing_file_when_found(
+        self, authenticated_client: GoogleDriveClient, tmp_path: Path
+    ) -> None:
+        """フォルダ内に同名ファイルが存在する場合は上書き更新"""
+        test_file = tmp_path / "tide_graph_tk_20260215.png"
+        test_file.write_bytes(b"\x89PNG\r\n")
+
+        service = authenticated_client.get_service()
+        # list returns existing file
+        service.files().list().execute.return_value = {"files": [{"id": "existing_file_id"}]}
+        service.files().update().execute.return_value = {"id": "existing_file_id"}
+
+        result = authenticated_client.upload_or_update_file(test_file, folder_id="folder123")
+
+        assert result["file_id"] == "existing_file_id"
+        assert "existing_file_id" in result["file_url"]
+        service.files().update.assert_called()
+        # permissions.create should NOT be called for existing files
+        service.permissions().create.assert_not_called()
+
+    def test_file_not_found_raises_error(
+        self, authenticated_client: GoogleDriveClient, tmp_path: Path
+    ) -> None:
+        """存在しないファイルをアップロードするとエラー"""
+        nonexistent = tmp_path / "nonexistent.png"
+
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            authenticated_client.upload_or_update_file(nonexistent, folder_id="folder123")
+
+    def test_creates_without_folder_id(
+        self, authenticated_client: GoogleDriveClient, tmp_path: Path
+    ) -> None:
+        """folder_id なしの場合、既存チェックをスキップして新規作成"""
+        test_file = tmp_path / "tide_graph.png"
+        test_file.write_bytes(b"\x89PNG\r\n")
+
+        service = authenticated_client.get_service()
+        service.files().create().execute.return_value = {"id": "no_folder_file_id"}
+        service.permissions().create().execute.return_value = {}
+
+        result = authenticated_client.upload_or_update_file(test_file)
+
+        assert result["file_id"] == "no_folder_file_id"
+        # list should not be called when folder_id is None
+        service.files().list.assert_not_called()
+
+    def test_returns_correct_url_format(
+        self, authenticated_client: GoogleDriveClient, tmp_path: Path
+    ) -> None:
+        """返却される URL が正しいフォーマット"""
+        test_file = tmp_path / "test.png"
+        test_file.write_bytes(b"\x89PNG\r\n")
+
+        service = authenticated_client.get_service()
+        service.files().list().execute.return_value = {"files": []}
+        service.files().create().execute.return_value = {"id": "abc123"}
+        service.permissions().create().execute.return_value = {}
+
+        result = authenticated_client.upload_or_update_file(test_file, folder_id="f1")
+
+        assert result["file_url"] == "https://drive.google.com/file/d/abc123/view?usp=drivesdk"
