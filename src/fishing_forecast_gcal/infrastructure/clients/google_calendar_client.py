@@ -1,19 +1,29 @@
-"""Google Calendar API client with OAuth2 authentication."""
+"""Google Calendar API client.
 
-import pathlib
+Provides a client for Google Calendar API operations including
+event creation, retrieval, update, deletion and listing.
+
+Authentication is delegated to the shared ``google_auth`` module.
+
+Main Components:
+    - GoogleCalendarClient: Client for Google Calendar API.
+
+Project Context:
+    Part of the infrastructure/clients layer.  Used by
+    CalendarRepository and presentation commands.
+"""
+
+import logging
 from datetime import UTC
 from typing import Any
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-# OAuth2 scopes required for Google Calendar + Drive API
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/drive.file",
-]
+from fishing_forecast_gcal.infrastructure.clients.google_auth import (
+    authenticate as _authenticate,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleCalendarClient:
@@ -23,57 +33,25 @@ class GoogleCalendarClient:
         """Initialize Google Calendar client.
 
         Args:
-            credentials_path: Path to OAuth2 credentials JSON file
-            token_path: Path to store OAuth2 token JSON file
+            credentials_path: Path to OAuth2 credentials JSON file.
+                              (OAuth2 認証情報 JSON ファイルのパス)
+            token_path: Path to store OAuth2 token JSON file.
+                        (OAuth2 トークン JSON ファイルの保存パス)
         """
-        self.credentials_path = pathlib.Path(credentials_path)
-        self.token_path = pathlib.Path(token_path)
-        self._creds: Credentials | None = None
+        self._credentials_path = credentials_path
+        self._token_path = token_path
         self._service: Any = None
 
     def authenticate(self) -> None:
-        """Perform OAuth2 authentication flow.
+        """Perform OAuth2 authentication and build Calendar API service.
 
-        This will:
-        1. Load existing token if available
-        2. Refresh token if expired
-        3. Prompt user for authorization if no valid token exists
-        4. Save token for future use
+        Delegates the OAuth2 flow to the shared ``google_auth`` module,
+        then builds the Calendar API service with the obtained credentials.
+
+        (OAuth2 認証を共通モジュールに委譲し、Calendar API サービスを構築する)
         """
-        # Load existing token
-        if self.token_path.exists():
-            self._creds = Credentials.from_authorized_user_file(str(self.token_path), SCOPES)
-
-        # If no valid credentials, perform OAuth flow
-        if not self._creds or not self._creds.valid:
-            if self._creds and self._creds.expired and self._creds.refresh_token:
-                # Refresh expired token
-                print("Refreshing OAuth token...")
-                self._creds.refresh(Request())
-            else:
-                # Perform new OAuth flow
-                print("Starting OAuth authentication flow...")
-                print(f"Using credentials from: {self.credentials_path}")
-
-                if not self.credentials_path.exists():
-                    raise FileNotFoundError(
-                        f"Credentials file not found: {self.credentials_path}\n"
-                        "Please download OAuth2 credentials from Google Cloud Console."
-                    )
-
-                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_path), SCOPES)
-                self._creds = flow.run_local_server(port=0)  # type: ignore[assignment]
-                print("Authentication successful!")
-
-            # Save token for future use
-            assert self._creds is not None
-            self.token_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.token_path, "w") as token_file:
-                token_file.write(self._creds.to_json())
-            print(f"Token saved to: {self.token_path}")
-
-        # Build Calendar API service
-        self._service = build("calendar", "v3", credentials=self._creds)
+        creds = _authenticate(self._credentials_path, self._token_path)
+        self._service = build("calendar", "v3", credentials=creds)
 
     def get_service(self) -> Any:
         """Get authenticated Calendar API service.
@@ -92,21 +70,21 @@ class GoogleCalendarClient:
         """Test Calendar API connection by fetching calendar list.
 
         Returns:
-            True if connection successful, False otherwise
+            True if connection successful, False otherwise.
         """
         try:
             service = self.get_service()
             result = service.calendarList().list(maxResults=10).execute()
             calendars = result.get("items", [])
 
-            print("\n=== Available Calendars ===")
+            logger.info("=== Available Calendars ===")
             for calendar in calendars:
-                print(f"- {calendar['summary']}: {calendar['id']}")
-            print(f"\nTotal: {len(calendars)} calendar(s) found")
+                logger.info("- %s: %s", calendar["summary"], calendar["id"])
+            logger.info("Total: %d calendar(s) found", len(calendars))
 
             return True
         except Exception as e:
-            print(f"Error testing connection: {e}")
+            logger.error("Error testing connection: %s", e)
             return False
 
     def create_event(

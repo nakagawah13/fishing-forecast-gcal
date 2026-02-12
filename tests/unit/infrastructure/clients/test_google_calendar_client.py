@@ -6,7 +6,7 @@ Google Calendar API の呼び出しをモック化して、クライアントの
 
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -42,22 +42,9 @@ class TestGoogleCalendarClient:
         self, client: GoogleCalendarClient, mock_token_path: Path
     ) -> GoogleCalendarClient:
         """認証済みクライアントのフィクスチャ"""
-        # トークンをモック化
-        mock_token_path.write_text('{"token": "mock_token", "refresh_token": "mock_refresh"}')
-
-        with (
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_calendar_client.Credentials"
-            ),
-            patch(
-                "fishing_forecast_gcal.infrastructure.clients.google_calendar_client.build"
-            ) as mock_build,
-        ):
-            mock_service = MagicMock()
-            mock_build.return_value = mock_service
-            client._service = mock_service  # pyright: ignore[reportPrivateUsage]
-            client._creds = MagicMock()  # pyright: ignore[reportPrivateUsage]
-            return client
+        mock_service = MagicMock()
+        client._service = mock_service  # pyright: ignore[reportPrivateUsage]
+        return client
 
     # ========================================
     # イベント作成のテスト
@@ -602,8 +589,8 @@ class TestGoogleCalendarClient:
         assert call_args[1]["supportsAttachments"] is True
 
     def test_scopes_include_drive_file(self) -> None:
-        """OAuth2 スコープに drive.file が含まれる"""
-        from fishing_forecast_gcal.infrastructure.clients.google_calendar_client import SCOPES
+        """共通 OAuth2 スコープに drive.file が含まれる"""
+        from fishing_forecast_gcal.infrastructure.clients.google_auth import SCOPES
 
         assert "https://www.googleapis.com/auth/drive.file" in SCOPES
         assert "https://www.googleapis.com/auth/calendar" in SCOPES
